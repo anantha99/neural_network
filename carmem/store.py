@@ -33,7 +33,8 @@ CREATE TABLE IF NOT EXISTS facts (
     value TEXT NOT NULL, condition TEXT, state TEXT NOT NULL, source TEXT NOT NULL,
     sensitivity TEXT NOT NULL, support TEXT NOT NULL, contradictions TEXT NOT NULL,
     demotion INTEGER NOT NULL DEFAULT 0, consecutive_no INTEGER NOT NULL DEFAULT 0,
-    created TEXT NOT NULL, updated TEXT NOT NULL);
+    created TEXT NOT NULL, updated TEXT NOT NULL,
+    valid_from TEXT NOT NULL DEFAULT '', valid_until TEXT);
 CREATE INDEX IF NOT EXISTS facts_scope ON facts(scope, category, key);
 CREATE TABLE IF NOT EXISTS routines (
     id TEXT PRIMARY KEY, scope TEXT NOT NULL, signature TEXT NOT NULL, dow INTEGER NOT NULL,
@@ -153,12 +154,13 @@ class Store:
     def upsert_fact(self, f: Fact) -> None:
         self.conn.execute(
             """INSERT OR REPLACE INTO facts(id,scope,category,key,value,condition,state,source,sensitivity,
-               support,contradictions,demotion,consecutive_no,created,updated)
-               VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)""",
+               support,contradictions,demotion,consecutive_no,created,updated,valid_from,valid_until)
+               VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)""",
             (
                 f.id, f.scope, f.category, f.key, _dump(f.value), f.condition, f.state.value, f.source,
                 f.sensitivity, _dump([e.to_dict() for e in f.support]),
                 _dump([e.to_dict() for e in f.contradictions]), f.demotion, f.consecutive_no, f.created, f.updated,
+                f.valid_from or f.created, f.valid_until,
             ),
         )
         self.conn.commit()
@@ -206,7 +208,16 @@ class Store:
             support=[Evidence.from_dict(e) for e in _load(r["support"]) or []],
             contradictions=[Evidence.from_dict(e) for e in _load(r["contradictions"]) or []],
             demotion=r["demotion"], consecutive_no=r["consecutive_no"], created=r["created"], updated=r["updated"],
+            valid_from=r["valid_from"], valid_until=r["valid_until"],
         )
+
+    def fact_timeline(self, scope: str, category: str, key: str) -> list[Fact]:
+        """Every version of a fact, oldest first, including invalidated ones."""
+        rows = self.conn.execute(
+            "SELECT * FROM facts WHERE scope=? AND category=? AND key=? ORDER BY valid_from, created",
+            (scope, category, key),
+        )
+        return [self._fact(r) for r in rows]
 
     # ---------------- routines ----------------
     def upsert_routine(self, rt: Routine) -> None:

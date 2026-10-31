@@ -158,6 +158,14 @@ class Fact:
     consecutive_no: int = 0
     created: str = ""
     updated: str = ""
+    # Bi-temporal validity (Graphiti-style): when the fact started/stopped being true
+    # in the world. A contradicted fact is never deleted; it gets a valid_until.
+    valid_from: str = ""
+    valid_until: Optional[str] = None
+
+    @property
+    def is_current(self) -> bool:
+        return self.valid_until is None
 
     def describe(self) -> str:
         cond = f" (when {self.condition})" if self.condition else ""

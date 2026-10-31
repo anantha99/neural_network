@@ -104,6 +104,21 @@ Planted traps: a 50% Saturday errand that must stay below the confirm ratio, cha
 abandons and says "no" to, a valet with a voice-only identity, one person's school and
 allergy that must never surface for the other.
 
+## Kotlin core and conformance fixtures
+
+`kotlin/carmem-core` is the head-unit implementation for Android Automotive OS: pure
+Kotlin/JVM with the database behind a four-method `SqlDriver` interface, so the same core
+runs on the AndroidX bundled SQLite driver on device and on JDBC in CI. `fixtures/` holds
+the wire schema and a replayable event log exported from the Python benchmark with
+`python -m bench.export_fixtures`; the Kotlin `ConformanceTest` replays it and must
+reproduce the same proposals, routines, facts, tombstones and QA results. The Python
+package stays the reference and the research harness; the policy is tuned here first and
+re-exported.
+
+```
+cd kotlin && gradle :carmem-core:test
+```
+
 ## Layout
 
 ```
@@ -116,7 +131,11 @@ carmem/
   memory.py         CarMemory facade and session state
   policy.py         every threshold and tier, as editable JSON
   llm/              LLMClient protocol, Anthropic and OpenAI-compatible adapters, tool specs
-bench/              synthetic household generator and scorer
+  wire.py           JSON schema shared by every implementation and client
+  reconcile.py      Mem0-style add / update / noop for free-text memories
+bench/              synthetic household generator, scorer, fixture exporter
+fixtures/           wire-schema.json and the replayable conformance fixture
+kotlin/carmem-core  Kotlin port with conformance + unit tests (see kotlin/README.md)
 tests/              pytest suite (python -m pytest)
 docs/DESIGN.md      the design in detail
 ```

@@ -14,7 +14,7 @@ from typing import Any
 
 from .models import VEHICLE_SCOPE, Episode, Fact, Occupancy, Routine, State
 from .policy import Policy
-from .retrieval import Embedder, score, top_k
+from .retrieval import Embedder, recency_weight, score, top_k
 from .store import Store
 
 
@@ -118,7 +118,12 @@ class ContextBuilder:
             qvec = self.embedder.embed(query)
             since = now - timedelta(days=episode_days)
             cands = self.store.episodes([occupancy.driver_id], since=since, limit=400, with_embeddings=True)
-            ranked = top_k(((score(query, qvec, ep.text, vec), ep) for ep, vec in cands), k_episodes)
+            hl = self.policy.retrieval_recency_half_life_days
+            ranked = top_k(
+                ((score(query, qvec, ep.text, vec) * recency_weight((now - ep.ts).total_seconds() / 86400, hl), ep)
+                 for ep, vec in cands),
+                k_episodes,
+            )
             packet.episodes = [ep for s, ep in ranked if s > 0.05]
             # also rank facts by relevance so the most useful come first
             packet.facts.sort(key=lambda f: -score(query, qvec, f.describe(), None))

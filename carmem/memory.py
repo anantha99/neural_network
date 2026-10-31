@@ -60,7 +60,7 @@ class CarMemory:
         self.embedder = embedder or HashingEmbedder()
         self.clock = clock or datetime.now
         self.identity = IdentityResolver(self.store, self.policy)
-        self.consolidator = Consolidator(self.store, self.policy)
+        self.consolidator = Consolidator(self.store, self.policy, self.embedder, llm)
         self.context_builder = ContextBuilder(self.store, self.policy, self.embedder)
         self.extractor = LLMExtractor(llm) if llm is not None else RuleExtractor()
         self._session: Optional[_Session] = None
@@ -251,6 +251,15 @@ class CarMemory:
         d["episodes"] = d["episodes"][:k]
         return d
 
+    def fact_history(self, category: str, key: str, scope: str | None = None) -> list[dict[str, Any]]:
+        """Timeline of a fact: every value it has had, with validity intervals."""
+        scope = scope or self._driver()
+        return [
+            {"id": f.id, "value": f.value, "condition": f.condition, "source": f.source,
+             "valid_from": f.valid_from, "valid_until": f.valid_until, "state": f.state.value}
+            for f in self.store.fact_timeline(scope, category, key)
+        ]
+
     def explain(self, record_id: str) -> dict[str, Any]:
         rec: Fact | Routine | None = self.store.get_fact(record_id) or self.store.get_routine(record_id)
         if rec is None:
@@ -262,6 +271,7 @@ class CarMemory:
         return {
             "record": rec.id, "kind": "routine" if isinstance(rec, Routine) else "fact", "description": rec.describe(),
             "state": rec.state.value, "source": getattr(rec, "source", "trips"),
+            "valid_from": getattr(rec, "valid_from", None), "valid_until": getattr(rec, "valid_until", None),
             "because": [ev(e) for e in rec.support[-10:]],
             "against": [ev(e) for e in rec.contradictions[-10:]],
             "tier": self.policy.effective_tier(rec.category, rec.demotion).value,

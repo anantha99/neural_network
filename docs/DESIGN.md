@@ -50,9 +50,13 @@ Transitions are deterministic rules over the support and contradiction lists; ev
 comes from `Policy`.
 
 ### Stated facts
-"My kid's school is Oakwood" is confirmed immediately. A later contradictory statement
-retires the old record and keeps it with the new statement attached as the contradiction,
-so the trail survives.
+"My kid's school is Oakwood" is confirmed immediately. Facts carry a validity interval
+(`valid_from`, `valid_until`), as in Zep's Graphiti: a later contradictory statement never
+deletes the old record, it closes its interval and attaches the new statement as the
+contradiction, so "when did this change" has an answer. Free-text notes have no reliable
+key, so they reconcile the way Mem0 does: the new note is compared with the most similar
+existing notes and the outcome is add, update (invalidate and succeed) or no-op (add
+evidence). Rules decide by default; an LLM may decide when one is configured.
 
 ### Implicit facts
 An observed setting accumulates. Within `fact_window_days`, if there are at least
@@ -111,7 +115,7 @@ sensor agrees (`vehicle_min_distinct_persons`).
 `ContextBuilder.build(occupancy, query, destination)` assembles confirmed facts (stated
 beats implicit for the same key; conditioned facts replace their base), confirmed and
 candidate routines, vehicle facts, and the top episodes by a hybrid of keyword overlap and
-hashed-embedding cosine. For `destination="cloud"` the policy's masked categories and
+hashed-embedding cosine, weighted by recency with a 14-day half-life. For `destination="cloud"` the policy's masked categories and
 sensitivities are replaced by tokens like `<school_1>` in facts, routines and episode text;
 the mapping stays on the device and `unmask()` restores the reply. This is the handshake
 with a request router: the router decides *where* a request runs, the packet decides
@@ -141,7 +145,16 @@ scores:
 * LongMemEval-style QA on the rendered context, with forbidden strings for leakage
 * cloud masking
 
+## Implementations
+The Python package is the reference. `kotlin/carmem-core` is a line-for-line port for the
+head unit, verified by replaying `fixtures/household_seed7_w8.json` with the protocol in
+`fixtures/wire-schema.json` and matching the reference's outputs exactly.
+
 ## Not yet built
+* The Android module: bound memory service, CarPropertyManager and occupant-zone adapters,
+  trip segmentation from ignition and location signals, place clustering, LiteRT-LM
+  extractor behind `LlmClient`, keystore-backed database encryption.
+* The cloud bridge module (Koog-based agent client with client-executed memory tools).
 * An actual on-device model for extraction and condition proposal; today the LLM path is an
   adapter, the deterministic path is the default.
 * Passenger-scoped writes (a passenger's utterance is attributed to the passenger, but

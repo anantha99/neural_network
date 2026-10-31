@@ -69,6 +69,15 @@ class Policy:
     # --- stated facts ---
     fact_confirm_on_statement: bool = True
 
+    # --- reconcile (Mem0-style add/update/noop) for free-text categories ---
+    reconcile_categories: list[str] = field(default_factory=lambda: ["note"])
+    reconcile_top_k: int = 5
+    reconcile_noop_similarity: float = 0.8
+    reconcile_update_similarity: float = 0.45
+
+    # --- retrieval ---
+    retrieval_recency_half_life_days: float = 14.0
+
     # --- correction ---
     no_weight: float = 1.0
     demote_after_consecutive_no: int = 2

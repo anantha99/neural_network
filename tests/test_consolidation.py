@@ -135,3 +135,42 @@ def test_explain_has_provenance():
     r = mem.hear("I hate toll roads", now=t)
     ex = mem.explain(r["stored"][0]["id"])
     assert ex["because"][0]["episode"] == "I hate toll roads"
+
+
+def test_superseded_fact_keeps_validity_interval():
+    mem = make()
+    t = datetime(2026, 9, 7, 8)
+    mem.ignition_on([IdentitySignal("key_fob", "fob-a")], now=t)
+    mem.hear("my kid's school is Oakwood Primary", now=t)
+    mem.hear("my kid's school is Hillcrest Academy", now=t + timedelta(days=30))
+    hist = mem.fact_history("school", "school_location")
+    assert [h["value"] for h in hist] == ["Oakwood Primary", "Hillcrest Academy"]
+    assert hist[0]["valid_until"] == (t + timedelta(days=30)).isoformat() and hist[1]["valid_until"] is None
+
+
+def test_notes_reconcile_noop_update_add():
+    mem = make()
+    t = datetime(2026, 9, 7, 8)
+    mem.ignition_on([IdentitySignal("key_fob", "fob-a")], now=t)
+    a = mem.hear("remember that the parking code at the office garage is 4471", now=t)["stored"][0]["id"]
+    b = mem.hear("remember the parking code at the office garage is 4471", now=t)["stored"][0]["id"]
+    assert a == b  # same thing again: noop, evidence added
+    c = mem.hear("remember that the parking code at the office garage is now 9920", now=t + timedelta(days=1))["stored"][0]["id"]
+    assert c != a
+    live = [f for f in mem.store.facts(["asha"], "note", states=[State.CONFIRMED])]
+    assert len(live) == 1 and "9920" in str(live[0].value)
+    old = mem.store.get_fact(a)
+    assert old.valid_until is not None and old.state == State.RETIRED
+    d = mem.hear("remember that the dentist is on Baker Street", now=t + timedelta(days=2))["stored"][0]["id"]
+    assert d not in (a, c) and len(mem.store.facts(["asha"], "note", states=[State.CONFIRMED])) == 2
+
+
+def test_recent_episodes_outrank_old_ones_at_equal_relevance():
+    mem = make()
+    t = datetime(2026, 9, 7, 8)
+    mem.ignition_on([IdentitySignal("key_fob", "fob-a")], now=t)
+    mem.record_trip(Trip(t, t + timedelta(minutes=30), "home", "Airport Terminal 2", ["asha"]))
+    t2 = t + timedelta(days=20)
+    mem.record_trip(Trip(t2, t2 + timedelta(minutes=30), "home", "Airport Terminal 2", ["asha"]))
+    out = mem.recall("airport", now=t2 + timedelta(hours=1))
+    assert out["episodes"][0]["ts"].startswith((t2).strftime("%Y-%m-%d"))

@@ -29,6 +29,8 @@ from .models import (
     parse_iso,
 )
 from .policy import Policy
+from .reconcile import Reconciler
+from .retrieval import Embedder, HashingEmbedder
 from .store import Store
 
 DAY_NAMES = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"]
@@ -74,9 +76,11 @@ def routine_tombstone_key(destination: str) -> str:
 
 
 class Consolidator:
-    def __init__(self, store: Store, policy: Policy):
+    def __init__(self, store: Store, policy: Policy, embedder: Embedder | None = None, llm=None):
         self.store = store
         self.policy = policy
+        self.embedder = embedder or HashingEmbedder()
+        self.reconciler = Reconciler(policy, self.embedder, llm)
 
     # ------------------------------------------------------------------
     # semantic layer: stated facts
@@ -84,32 +88,62 @@ class Consolidator:
     def state_fact(self, scope: str, c: Candidate, ep: Episode, now: datetime) -> Fact:
         """A driver told us something. Stated facts are confirmed immediately."""
         sens = self.policy.sensitivity_for(c.category)
+        ev = Evidence(ep.id, iso(ep.ts), c.value, c.condition, note="stated")
+        if c.category in self.policy.reconcile_categories:
+            return self._state_free_text(scope, c, ev, now)
         existing = [
             f for f in self.store.facts([scope], c.category, c.key, [State.CONFIRMED, State.CANDIDATE])
-            if f.source == "stated" and f.condition == c.condition
+            if f.source == "stated" and f.condition == c.condition and f.is_current
         ]
-        ev = Evidence(ep.id, iso(ep.ts), c.value, c.condition, note="stated")
         for old in existing:
             if old.value == c.value:
                 old.support.append(ev)
                 old.updated = iso(now)
                 self.store.upsert_fact(old)
                 return old
-            # A new statement supersedes the old one, but we keep the trail.
-            old.state = State.RETIRED
-            old.contradictions.append(ev)
-            old.updated = iso(now)
-            self.store.upsert_fact(old)
-            self.store.audit(now, scope, "fact.superseded", {"old": old.id, "value": c.value})
-        f = Fact(
-            id=new_id("fact"), scope=scope, category=c.category, key=c.key, value=c.value, condition=c.condition,
-            state=State.CONFIRMED if self.policy.fact_confirm_on_statement else State.CANDIDATE,
-            source="stated", sensitivity=sens, support=[ev], created=iso(now), updated=iso(now),
-        )
-        self.store.upsert_fact(f)
-        self.store.audit(now, scope, "fact.stated", {"id": f.id, "fact": f.describe()})
+            self._invalidate(old, ev, now, "superseded")
+        f = self._new_stated(scope, c.category, c.key, c.value, c.condition, sens, ev, now)
         if c.about == "vehicle":
             self._maybe_promote_vehicle(c.category, c.key, now)
+        return f
+
+    def _state_free_text(self, scope: str, c: Candidate, ev: Evidence, now: datetime) -> Fact:
+        """Notes reconcile by similarity (add / update / noop), not by key."""
+        existing = [f for f in self.store.facts([scope], c.category, states=[State.CONFIRMED]) if f.is_current]
+        d = self.reconciler.decide(str(c.value), existing)
+        self.store.audit(now, scope, "fact.reconcile", {"op": d.op, "by": d.by, "similarity": round(d.similarity, 3),
+                                                        "target": d.target.id if d.target else None})
+        if d.op == "noop" and d.target:
+            d.target.support.append(ev)
+            d.target.updated = iso(now)
+            self.store.upsert_fact(d.target)
+            return d.target
+        if d.op == "update" and d.target:
+            self._invalidate(d.target, ev, now, "updated")
+            return self._new_stated(scope, c.category, d.target.key, c.value, c.condition,
+                                    self.policy.sensitivity_for(c.category), ev, now, predecessor=d.target)
+        return self._new_stated(scope, c.category, c.key, c.value, c.condition, self.policy.sensitivity_for(c.category), ev, now)
+
+    def _invalidate(self, old: Fact, ev: Evidence, now: datetime, why: str) -> None:
+        """Never delete a contradicted fact: close its validity interval and keep the trail."""
+        old.state = State.RETIRED
+        old.valid_until = ev.ts
+        old.contradictions.append(ev)
+        old.updated = iso(now)
+        self.store.upsert_fact(old)
+        self.store.audit(now, old.scope, f"fact.{why}", {"old": old.id, "fact": old.describe(), "valid_until": ev.ts})
+
+    def _new_stated(self, scope, category, key, value, condition, sens, ev, now, predecessor: Fact | None = None) -> Fact:
+        f = Fact(
+            id=new_id("fact"), scope=scope, category=category, key=key, value=value, condition=condition,
+            state=State.CONFIRMED if self.policy.fact_confirm_on_statement else State.CANDIDATE,
+            source="stated", sensitivity=sens, support=[ev], created=iso(now), updated=iso(now), valid_from=ev.ts,
+        )
+        if predecessor is not None:
+            f.support = [Evidence(e.episode_id, e.ts, e.value, e.condition, e.weight, "carried from " + predecessor.id)
+                         for e in predecessor.support[-5:]] + [ev]
+        self.store.upsert_fact(f)
+        self.store.audit(now, scope, "fact.stated", {"id": f.id, "fact": f.describe()})
         return f
 
     # ------------------------------------------------------------------
@@ -123,7 +157,7 @@ class Consolidator:
             base = Fact(
                 id=new_id("fact"), scope=scope, category=category, key=key, value=value, condition=None,
                 state=State.OBSERVED, source="implicit", sensitivity=self.policy.sensitivity_for(category),
-                created=iso(now), updated=iso(now),
+                created=iso(now), updated=iso(now), valid_from=iso(ep.ts),
             )
         base.support.append(Evidence(ep.id, iso(ep.ts), value, _cond_str(conds), note="observed"))
         base.updated = iso(now)
@@ -193,7 +227,7 @@ class Consolidator:
                 f = existing or Fact(
                     id=new_id("fact"), scope=base.scope, category=base.category, key=base.key, value=resolved[g],
                     condition=g, state=State.CONFIRMED, source="implicit", sensitivity=base.sensitivity,
-                    created=iso(now), updated=iso(now),
+                    created=iso(now), updated=iso(now), valid_from=min(e.ts for e in evs),
                 )
                 f.value, f.state, f.support, f.updated = resolved[g], State.CONFIRMED, list(evs), iso(now)
                 self.store.upsert_fact(f)
@@ -219,7 +253,7 @@ class Consolidator:
             return existing
         f = Fact(
             id=new_id("fact"), scope=VEHICLE_SCOPE, category=category, key=key, value=value, state=State.CONFIRMED,
-            source="sensor", sensitivity="public", support=[ev], created=iso(now), updated=iso(now),
+            source="sensor", sensitivity="public", support=[ev], created=iso(now), updated=iso(now), valid_from=iso(ep.ts),
         )
         self.store.upsert_fact(f)
         self.store.audit(now, VEHICLE_SCOPE, "vehicle.fact", {"id": f.id, "fact": f.describe()})
@@ -242,6 +276,7 @@ class Consolidator:
             id=new_id("fact"), scope=VEHICLE_SCOPE, category=category, key=key, value=latest.value,
             state=State.CONFIRMED, source="stated", sensitivity="public",
             support=[e for c in claims for e in c.support], created=iso(now), updated=iso(now),
+            valid_from=min(e.ts for c in claims for e in c.support),
         )
         self.store.upsert_fact(f)
         self.store.audit(now, VEHICLE_SCOPE, "vehicle.promoted", {"id": f.id, "from": sorted(persons)})

@@ -71,5 +71,22 @@ def score(query: str, qvec: Sequence[float], text: str, tvec: Sequence[float] | 
     return s
 
 
+def recency_weight(age_days: float, half_life_days: float) -> float:
+    """0.5 .. 1.0 multiplier: a memory half a half-life old scores ~0.85, a very old one 0.5.
+
+    Generative-agents style recency, bounded so relevance still dominates."""
+    if half_life_days <= 0:
+        return 1.0
+    return 0.5 + 0.5 * (0.5 ** (max(age_days, 0.0) / half_life_days))
+
+
+def similarity(a_text: str, b_text: str, embedder: "Embedder") -> float:
+    """Symmetric 0..1 similarity used by the reconciler: keyword Jaccard blended with cosine."""
+    ta, tb = set(tokenize(a_text)), set(tokenize(b_text))
+    jacc = len(ta & tb) / len(ta | tb) if (ta | tb) else 0.0
+    cos = max(0.0, cosine(embedder.embed(a_text), embedder.embed(b_text)))
+    return 0.5 * jacc + 0.5 * cos
+
+
 def top_k(items: Iterable[tuple[float, object]], k: int) -> list[tuple[float, object]]:
     return sorted(items, key=lambda x: x[0], reverse=True)[:k]

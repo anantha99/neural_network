@@ -1,12 +1,15 @@
-# carmem-core (Kotlin)
+# carmem (Kotlin)
 
-The head-unit implementation of carmem. Pure Kotlin/JVM, no Android dependency,
-so it builds and tests on CI in seconds. The Android module (bound service, car
-signal adapters, LiteRT-LM extractor) sits on top of this and is the next phase.
+Three modules:
+
+* `carmem-core`: the memory itself, a line-for-line port of the Python reference. Pure JVM.
+* `carmem-car`: car events, trip segmentation, place resolution and session orchestration. Pure JVM, tested.
+* `carmem-android`: Android Automotive bound service and platform adapters. Built only when an Android SDK is configured.
 
 ```
 cd kotlin
-gradle :carmem-core:test
+gradle test                       # core + car
+gradle :carmem-android:assembleDebug   # with ANDROID_HOME set
 ```
 
 ## Conformance

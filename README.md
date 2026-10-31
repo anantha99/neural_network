@@ -116,8 +116,22 @@ package stays the reference and the research harness; the policy is tuned here f
 re-exported.
 
 ```
-cd kotlin && gradle :carmem-core:test
+cd kotlin && gradle test          # carmem-core + carmem-car on the JVM
 ```
+
+## Android Automotive module
+
+`kotlin/carmem-car` holds everything the head unit needs that is not platform code:
+`CarEvent`s (ignition, location fix, setting changed, occupant observed, utterance,
+vehicle fault), a `TripSegmenter` that turns fixes into trips and splits on dwell with the
+engine running, a `PlaceResolver` that clusters coordinates into places and infers home
+and work from dwell, and a `CarSession` that drives `CarMemory` from the event stream.
+It is tested end to end on the JVM. `kotlin/carmem-android` is the thin Android library:
+a foreground bound service exposing `ICarMemory` over AIDL with wire-schema JSON, a
+`SqlDriver` over the AndroidX bundled SQLite driver, and adapters for vehicle properties,
+occupant zones, location and Bluetooth. It is included in the Gradle build only when an
+Android SDK is configured. See `kotlin/carmem-android/README.md` for permissions and
+deployment notes.
 
 ## Layout
 
@@ -136,6 +150,8 @@ carmem/
 bench/              synthetic household generator, scorer, fixture exporter
 fixtures/           wire-schema.json and the replayable conformance fixture
 kotlin/carmem-core  Kotlin port with conformance + unit tests (see kotlin/README.md)
+kotlin/carmem-car   trip segmentation, places, session orchestration (JVM, tested)
+kotlin/carmem-android  AAOS service, AIDL, SQLite driver, signal adapters (needs SDK)
 tests/              pytest suite (python -m pytest)
 docs/DESIGN.md      the design in detail
 ```

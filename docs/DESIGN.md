@@ -150,10 +150,23 @@ The Python package is the reference. `kotlin/carmem-core` is a line-for-line por
 head unit, verified by replaying `fixtures/household_seed7_w8.json` with the protocol in
 `fixtures/wire-schema.json` and matching the reference's outputs exactly.
 
+## Head unit
+`kotlin/carmem-car` turns the car's event stream into memory operations. Trips are
+segmented from ignition and location: a trip ends at ignition off or after eight minutes
+stationary with the engine running, which is what separates the school drop-off from the
+drive to the office. Places are clusters with a 150 m radius; home is the cluster with the
+most night dwell, work the one with the most weekday daytime dwell, and the driver can name
+any place. Identity signals are buffered for ten minutes and resolved at ignition on; a
+hard driver signal arriving mid-session re-resolves the occupant. Proposals are computed
+once per leg from the current place. `kotlin/carmem-android` hosts this in a bound service
+with one worker thread (one writer, no locks in the core) and exposes the wire schema over
+AIDL so the on-device assistant and the cloud bridge see identical shapes.
+
 ## Not yet built
-* The Android module: bound memory service, CarPropertyManager and occupant-zone adapters,
-  trip segmentation from ignition and location signals, place clustering, LiteRT-LM
-  extractor behind `LlmClient`, keystore-backed database encryption.
+* Device verification of `carmem-android` (it compiles only with an Android SDK present),
+  keystore-backed or SQLCipher encryption beyond file-based encryption, right-hand-drive
+  HVAC area mapping, and passenger-scoped writes from seat occupancy.
+* The LiteRT-LM `LlmClient` with JSON-schema constrained decoding.
 * The cloud bridge module (Koog-based agent client with client-executed memory tools).
 * An actual on-device model for extraction and condition proposal; today the LLM path is an
   adapter, the deterministic path is the default.

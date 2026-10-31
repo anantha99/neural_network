@@ -154,6 +154,7 @@ kotlin/carmem-car   trip segmentation, places, session orchestration (JVM, teste
 kotlin/carmem-android  AAOS service, AIDL, SQLite driver, signal adapters (needs SDK)
 tests/              pytest suite (python -m pytest)
 docs/DESIGN.md      the design in detail
+docs/HANDOFF.md     state of every piece, build steps, decisions, what to do next
 ```
 
 The two notebooks at the root (`forward_propogation.ipynb`, `neural_network_using_sklearn.ipynb`)

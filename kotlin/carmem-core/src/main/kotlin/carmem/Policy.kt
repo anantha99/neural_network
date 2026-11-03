@@ -37,16 +37,20 @@ data class Policy(
 
     val hard_signal_priority: List<String> = listOf("seat_profile", "phone", "key_fob"),
     val voice_alone_min_confidence: Double = 1.01,
+    /** Unbound hard signals of these kinds enroll a new person when the driver would otherwise be a guest (Kotlin-only). */
+    val auto_enroll_kinds: List<String> = listOf("seat_profile"),
+    /** Unbound hard signals of these kinds are bound to the recognised driver they appear with (Kotlin-only). */
+    val auto_bind_kinds: List<String> = listOf("phone", "key_fob"),
 
     val tiers: Map<String, String> = mapOf(
         "climate" to "act", "seat" to "act", "media" to "act", "route" to "suggest", "route_prefs" to "silent",
         "contacts" to "never", "health" to "never", "home_address" to "silent", "school" to "silent",
-        "note" to "silent", "vehicle_fault" to "silent",
+        "note" to "silent", "vehicle_fault" to "silent", "identity" to "silent",
     ),
     val sensitivity: Map<String, String> = mapOf(
         "health" to "sensitive", "contacts" to "sensitive", "home_address" to "sensitive", "school" to "sensitive",
         "finance" to "sensitive", "climate" to "public", "seat" to "public", "media" to "personal", "route" to "personal",
-        "route_prefs" to "personal", "note" to "personal", "vehicle_fault" to "public",
+        "route_prefs" to "personal", "note" to "personal", "vehicle_fault" to "public", "identity" to "personal",
     ),
     val mask_in_cloud_categories: List<String> = listOf("health", "contacts", "home_address", "school", "finance"),
     val mask_in_cloud_sensitivity: List<String> = listOf("sensitive"),

@@ -46,3 +46,20 @@ reconciliation then use the model; driving-time intents stay rule-based. Expose
 `CarMemory.toolSpecs()` to the on-device assistant as a `ToolSet` and route calls to
 `handleTool`. For the cloud agent, send `context(query, "cloud").render()` with the
 request, execute its tool calls locally with `handleTool`, and `unmask` the reply.
+
+## carmem-car
+
+| File | What |
+|---|---|
+| `CarEvents.kt` | the events the Android layer feeds in |
+| `TripSegmenter.kt` | ignition / location / settings -> `Trip`s, split on dwell |
+| `PlaceResolver.kt` | clusters fixes into places, infers `home` / `work`, reports every rename (`PlaceRename`, `addRenameListener`) |
+| `CarSession.kt` | drives `CarMemory` from events: identity at ignition, auto-enrollment, binding accretion, proposals, trips, place renames, optional async extraction |
+| `ExtractionQueue.kt` | one background thread for slow extraction; applies results via a caller-supplied memory-thread executor |
+| `DemoClock.kt` | a settable `() -> LocalDateTime` to pass as `CarMemory(clock = ...)` for live demos |
+
+Kotlin-only additions to the core (not in the Python reference, not exercised by the fixture):
+`CarMemory.renamePlace(scope, old, new, now)` (routines follow a place when it is renamed),
+`CarMemory.rename(personId, name)` and the `my name is X` rule, `hear(..., extract = false)` with
+`extractCandidates` / `applyCandidates` / `extractEpisode` for deferred extraction, and the
+policy fields `auto_enroll_kinds` / `auto_bind_kinds`.

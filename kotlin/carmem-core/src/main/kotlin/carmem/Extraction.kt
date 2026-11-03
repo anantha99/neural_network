@@ -27,6 +27,13 @@ fun detectIntent(text: String): Intent {
 
 fun slug(text: String): String = text.lowercase().replace(Regex("[^a-z0-9]+"), "_").trim('_').take(40).ifEmpty { "note" }
 
+private val MY_NAME = Regex("""(?i:\bmy name is) (\p{L}[\p{L}'-]*(?: \p{Lu}[\p{L}'-]*)?)""")
+
+/** "my name is Asha" -> identity/name (Kotlin-only; applied as a rename of the driver, never stored as a fact). */
+fun nameCandidate(text: String): Candidate? = MY_NAME.find(text)?.let { m ->
+    Candidate("identity", "name", JsonPrimitive(m.groupValues[1].trim().replaceFirstChar { it.uppercaseChar() }))
+}
+
 interface Extractor { fun extract(text: String): List<Candidate> }
 
 /** Same patterns as carmem/extraction.py. */
@@ -58,6 +65,7 @@ class RuleExtractor : Extractor {
         allergy.find(t)?.let { out += Candidate("health", "allergy", JsonPrimitive(it.groupValues[1].clean())) }
         sensor.find(t)?.let { out += Candidate("vehicle_fault", "${it.groupValues[1].lowercase()}_${it.groupValues[2].lowercase()}_sensor", JsonPrimitive(it.groupValues[3].clean()), about = "vehicle") }
         if (tyre.containsMatchIn(t)) out += Candidate("vehicle_fault", "tyre_pressure", JsonPrimitive("warning reported"), about = "vehicle")
+        nameCandidate(t)?.let { out += it }
         if (out.isEmpty()) remember.find(t)?.let { val n = it.groupValues[1].clean(); out += Candidate("note", slug(n), JsonPrimitive(n)) }
         return out
     }
@@ -84,7 +92,12 @@ const val EXTRACTION_SCHEMA = """{"type":"object","properties":{"candidates":{"t
 /** Model-backed extraction with the rules as the safety net. */
 class LlmExtractor(private val llm: LlmClient, private val fallback: RuleExtractor = RuleExtractor()) : Extractor {
     private val json = kotlinx.serialization.json.Json { ignoreUnknownKeys = true }
-    override fun extract(text: String): List<Candidate> = try {
+    override fun extract(text: String): List<Candidate> {
+        val name = nameCandidate(text)
+        return listOfNotNull(name) + extractModel(text).filter { it.category != "identity" }
+    }
+
+    private fun extractModel(text: String): List<Candidate> = try {
         val obj = json.parseToJsonElement(llm.completeJson(EXTRACTION_SYSTEM, text, EXTRACTION_SCHEMA)) as kotlinx.serialization.json.JsonObject
         (obj["candidates"] as kotlinx.serialization.json.JsonArray).map { it as kotlinx.serialization.json.JsonObject }.map { it ->
             val cat = (it["category"] as JsonPrimitive).content

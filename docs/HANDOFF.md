@@ -129,3 +129,23 @@ crash-loop at boot under host load (a cold restart fixed it).
 > `docs/DESIGN.md` first. I have Android Studio and an SDK locally. Start by compiling
 > `kotlin/carmem-android`, fix what the compiler reports, then run the service on the AAOS
 > emulator and confirm trips and proposals. After that, implement the LiteRT-LM `LlmClient`.
+
+## Changed in this pass (2026-11-03, Kotlin only)
+
+- **Routines follow renamed places.** `PlaceResolver` reports every label change; `CarSession` calls
+  `CarMemory.renamePlace(null, old, new, ts)`, which rewrites routines (destination, origin,
+  signature, action, evidence), merges duplicates and re-evaluates them, moves route tombstones and
+  rewrites trip episodes. The core stays keyed on names, so the fixture is unaffected. Naming a place
+  with a label another place already has (moved house) first strips that label from the old place.
+- **Auto-enrollment.** An unbound `seat_profile` (policy `auto_enroll_kinds`) enrolls
+  `seat_profile:<value>` named `Driver <value>` instead of opening a guest session; unbound
+  phones / fobs (policy `auto_bind_kinds`) seen with a recognised driver, and no other bound driver,
+  are bound to them. Voice is never enrolled or bound. "my name is Asha" renames the driver
+  (`CarMemory.rename`). `CarSession(onDriver = ...)` reports the resolved person after each ignition.
+  Judgment call: a phone is bound on its first co-sighting; a passenger's phone reported with
+  role `driver` would be bound too.
+- **Clock.** `CarMemory.clock` is public; `DemoClock` pins "now" for demos. The service should pass a
+  clock to `CarMemory` rather than `LocalDateTime.now()` at call sites.
+- **Background extraction.** `hear(..., extract = false)` logs and handles intents at once;
+  `CarSession(asyncExtraction = true, runOnMemoryThread = { handler.post(it) })` runs the model on an
+  `ExtractionQueue` thread and applies on the memory thread. Not yet wired into `carmem-android`.

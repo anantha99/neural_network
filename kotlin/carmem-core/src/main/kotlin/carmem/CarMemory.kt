@@ -8,6 +8,7 @@ import kotlinx.serialization.json.JsonPrimitive
 import kotlinx.serialization.json.buildJsonObject
 import kotlinx.serialization.json.put
 import java.time.LocalDateTime
+import kotlin.math.roundToInt
 
 /** Cabin settings the car can observe and apply, by key. */
 internal val SETTING_CATEGORIES =mapOf("cabin_temp" to "climate", "seat_position" to "seat", "media" to "media", "fan" to "climate")
@@ -28,7 +29,8 @@ class CarMemory(
     val policy: Policy = Policy(),
     llm: LlmClient? = null,
     val embedder: Embedder = HashingEmbedder(),
-    private val clock: () -> LocalDateTime = { LocalDateTime.now() },
+    /** "Now" for every call that is not given a timestamp. Swap in a demo clock to replay a scenario live. */
+    val clock: () -> LocalDateTime = { LocalDateTime.now() },
 ) {
     val store = Store(driver)
     val identity = IdentityResolver(store, policy)
@@ -40,6 +42,15 @@ class CarMemory(
     // ------------------------------------------------------------ identity / session
     fun enroll(id: String, name: String, bindings: List<Pair<String, String>> = emptyList()): Person = Person(id, name).also { identity.enroll(it, bindings) }
     fun bind(kind: String, value: String, personId: String) { requireNotNull(store.getPerson(personId)) { "unknown person $personId" }; store.bindIdentity(kind, value, personId) }
+
+    /** Change a person's display name (e.g. after "my name is Asha"). Returns the updated person, or null if unknown. */
+    fun rename(personId: String, name: String, now: LocalDateTime = clock()): Person? {
+        val before = store.getPerson(personId) ?: return null
+        if (before.name == name) return before
+        store.renamePerson(personId, name)
+        store.audit(now, personId, "person.renamed", buildJsonObject { put("from", before.name); put("to", name) })
+        return store.getPerson(personId)
+    }
 
     fun ignitionOn(signals: List<IdentitySignal>, now: LocalDateTime = clock()): Occupancy {
         if (session != null) ignitionOff(now)
@@ -99,8 +110,14 @@ class CarMemory(
         return consolidator.sensorFact(category, key, value, ep, now)
     }
 
-    /** Process one utterance: driving-time intents first, then extraction. */
-    fun hear(text: String, speakerId: String? = null, now: LocalDateTime = clock()): JsonObject {
+    /**
+     * Process one utterance: log it, handle driving-time intents, then extraction.
+     * With `extract = false` the extraction step is skipped and the result carries
+     * `"deferred": true`, `"scope"` and the episode id; run it later with [extractEpisode]
+     * (or [extractCandidates] off-thread + [applyCandidates] on the memory thread).
+     * Intents (no / yes / forget / why) are never deferred.
+     */
+    fun hear(text: String, speakerId: String? = null, now: LocalDateTime = clock(), extract: Boolean = true): JsonObject {
         val scope = speakerId ?: driver()
         val ep = store.addEpisode(scope, "utterance", now, text, buildJsonObject { put("speaker", scope) }, embedder.embed(text))
         val intent = detectIntent(text)
@@ -133,12 +150,38 @@ class CarMemory(
                     put("explanation", if (rid != null) explain(rid) else buildJsonObject { put("record", JsonNull) })
                     put("stored", JsonArray(emptyList()))
                 }
-                else -> put("stored", JsonArray(extractor.extract(text).map { applyCandidate(scope, it, ep, now) }))
+                else -> if (extract) put("stored", JsonArray(extractor.extract(text).map { applyCandidate(scope, it, ep, now) }))
+                    else { put("stored", JsonArray(emptyList())); put("deferred", true); put("scope", scope) }
             }
         }
     }
 
+    /** Run extraction for an utterance already logged by `hear(..., extract = false)` and apply it. Memory thread only. */
+    fun extractEpisode(episodeId: Long, scope: String, text: String, now: LocalDateTime): JsonArray =
+        applyCandidates(episodeId, scope, extractCandidates(text), now)
+
+    /** The slow half of deferred extraction: runs the extractor (model or rules). Touches no database; safe off the memory thread. */
+    fun extractCandidates(text: String): List<Candidate> = extractor.extract(text)
+
+    /**
+     * The fast half: apply candidates for a logged episode. Memory thread only. If the episode
+     * is gone (a guest session wiped at ignition off, or retention) nothing is applied.
+     */
+    fun applyCandidates(episodeId: Long, scope: String, candidates: List<Candidate>, now: LocalDateTime): JsonArray {
+        val ep = store.getEpisode(episodeId)?.takeIf { it.scope == scope } ?: return JsonArray(emptyList())
+        return JsonArray(candidates.map { applyCandidate(scope, it, ep, now) })
+    }
+
     private fun applyCandidate(scope: String, c: Candidate, ep: Episode, now: LocalDateTime): JsonObject {
+        if (c.category == "identity") {
+            // a name is never a fact: it renames the recognised driver, and is ignored for guests and passengers
+            val occ = session?.occupancy
+            if (c.key == "name" && occ != null && !occ.isGuest && occ.driverId == scope) {
+                val p = rename(scope, c.value.render(), now)
+                return buildJsonObject { put("renamed", scope); put("name", p?.name) }
+            }
+            return buildJsonObject { put("skipped", "identity"); put("fact", "${c.category}/${c.key}") }
+        }
         val f = if (c.kind == "observed") {
             if (consolidator.factTombstoned(scope, c.category, c.key, now)) return buildJsonObject { put("skipped", "tombstoned"); put("fact", "${c.category}/${c.key}") }
             consolidator.observeSetting(scope, c.category, c.key, c.value, ep, now)
@@ -148,6 +191,98 @@ class CarMemory(
             consolidator.stateFact(scope, c, ep, now).also { f -> session?.let { if (scope in it.occupancy.scopes) it.lastStated += f.id } }
         }
         return buildJsonObject { put("id", f.id); put("state", f.state.wire); put("fact", f.describe()); put("source", f.source) }
+    }
+
+    // ------------------------------------------------------------ places
+    /**
+     * A place got a new name (`place-3` became `home`, or the driver named it). Rewrites, in
+     * `scope` or every scope when null: routines (destination, origin, signature, action and
+     * evidence), merging any routine that now duplicates another; route tombstones; and trip
+     * episodes. Returns the number of records touched.
+     */
+    fun renamePlace(scope: String?, oldName: String, newName: String, now: LocalDateTime = clock()): Int {
+        val oldN = normPlace(oldName)
+        if (oldN.isEmpty() || newName.isBlank() || oldName == newName) return 0
+        fun ren(s: String) = if (normPlace(s) == oldN) newName else s
+        fun renEv(e: Evidence): Evidence {
+            val v = (e.value as? JsonPrimitive)?.takeIf { it.isString && normPlace(it.content) == oldN }?.let { JsonPrimitive(newName) } ?: e.value
+            return e.copy(value = v, condition = e.condition?.let(::ren))
+        }
+        val perScope = linkedMapOf<String, IntArray>() // routines, merged, tombstones, episodes
+        fun bump(sc: String, i: Int) { perScope.getOrPut(sc) { IntArray(4) }[i]++ }
+        val tol = policy.routine_slot_tolerance_min
+
+        val affected = store.routines(scope?.let { listOf(it) }).filter { normPlace(it.destination) == oldN || normPlace(it.origin) == oldN || it.action["destination"]?.render()?.let(::normPlace) == oldN }
+        val remap = mutableMapOf<String, Routine>()
+        for (old in affected) {
+            val dest = ren(old.destination)
+            var rt = old.copy(
+                signature = routineSignature(old.dow, dest), destination = dest, origin = ren(old.origin),
+                action = old.action.toMutableMap().apply { this["destination"]?.let { d -> if (normPlace(d.render()) == oldN) this["destination"] = JsonPrimitive(newName) } },
+                support = old.support.map(::renEv).toMutableList(), contradictions = old.contradictions.map(::renEv).toMutableList(),
+            )
+            val twin = if (rt.state == State.RETIRED) null else store.routines(listOf(rt.scope)).firstOrNull {
+                it.id != rt.id && it.signature == rt.signature && it.state != State.RETIRED && kotlin.math.abs(it.minuteOfDay - rt.minuteOfDay) <= tol
+            }
+            // "went elsewhere" against a place that is now this routine's own destination was never a contradiction
+            val bogus = rt.contradictions.filter { it.note == "went elsewhere" && it.value.render().let(::normPlace) == normPlace(dest) }
+            rt.contradictions = (rt.contradictions - bogus.toSet()).toMutableList()
+            if (twin != null) {
+                twin.support = twin.support.map(::renEv).toMutableList()
+                twin.contradictions = twin.contradictions.map(::renEv).filterNot { it.note == "went elsewhere" && it.value.render().let(::normPlace) == normPlace(dest) }.toMutableList()
+                rt = mergeRoutines(twin, rt, now)
+                store.deleteRoutine(old.id); bump(rt.scope, 1)
+            } else if (bogus.isNotEmpty()) rt = consolidator.evaluateRoutine(rt, now)
+            else store.upsertRoutine(rt)
+            remap[old.id] = rt
+            bump(rt.scope, 0)
+        }
+        // proposals already on screen point at the renamed (or merged) routine
+        session?.let { s ->
+            s.pending.replaceAll { p -> remap[p.recordId]?.let { r -> p.copy(recordId = r.id, action = r.action, text = p.text.replace(oldName, newName)) } ?: p }
+            remap.forEach { (from, to) -> if (from in s.suppressed) s.suppressed += to.id }
+        }
+
+        val oldKey = routineTombstoneKey(oldName); val newKey = routineTombstoneKey(newName)
+        if (oldKey != newKey) {
+            val scopes = store.tombstones(scope).filter { it["signature"] == oldKey }.map { it["scope"] as String }
+            store.renameTombstone(scope, oldKey, newKey)
+            scopes.forEach { bump(it, 2) }
+        }
+
+        for (ep in store.tripEpisodes(scope)) {
+            val pl = ep.payload as? JsonObject ?: continue
+            val o = (pl["origin"] as? JsonPrimitive)?.content ?: ""; val d = (pl["destination"] as? JsonPrimitive)?.content ?: ""
+            if (normPlace(o) != oldN && normPlace(d) != oldN) continue
+            val head = "trip $o -> $d"
+            val newHead = "trip ${ren(o)} -> ${ren(d)}"
+            val text = if (ep.text.startsWith(head)) newHead + ep.text.removePrefix(head) else ep.text
+            val payload = JsonObject(pl.toMutableMap().apply { put("origin", JsonPrimitive(ren(o))); put("destination", JsonPrimitive(ren(d))) })
+            store.updateEpisode(ep.id, text, payload, embedder.embed(text))
+            bump(ep.scope, 3)
+        }
+
+        if (perScope.isEmpty()) store.audit(now, scope, "place.renamed", buildJsonObject { put("from", oldName); put("to", newName); put("touched", 0) })
+        for ((sc, c) in perScope) store.audit(now, sc, "place.renamed", buildJsonObject {
+            put("from", oldName); put("to", newName); put("routines", c[0]); put("merged", c[1]); put("tombstones", c[2]); put("episodes", c[3])
+        })
+        return perScope.values.sumOf { it[0] + it[2] + it[3] }
+    }
+
+    /** Fold `from` into `into` (same scope, signature and slot), then re-evaluate. `from` is not deleted here. */
+    private fun mergeRoutines(into: Routine, from: Routine, now: LocalDateTime): Routine {
+        fun merge(a: List<Evidence>, b: List<Evidence>) = (a + b).distinctBy { Triple(it.episode_id, it.ts, it.note) }.sortedBy { it.ts }.toMutableList()
+        into.support = merge(into.support, from.support)
+        into.contradictions = merge(into.contradictions, from.contradictions)
+        into.demotion = maxOf(into.demotion, from.demotion)
+        into.consecutiveNo = maxOf(into.consecutiveNo, from.consecutiveNo)
+        into.lastSeen = listOf(into.lastSeen, from.lastSeen).filter { it.isNotEmpty() }.maxOrNull() ?: ""
+        val trips = into.support.filter { it.note == "trip" }.takeLast(10)
+        if (trips.isNotEmpty()) into.minuteOfDay = trips.map { minuteOf(parseIso(it.ts)) }.average().roundToInt()
+        trips.mapNotNull { it.condition }.filter { it.isNotEmpty() }.groupingBy { normPlace(it) }.eachCount().maxByOrNull { it.value }?.key
+            ?.let { top -> into.origin = trips.asReversed().firstOrNull { normPlace(it.condition ?: "") == top }?.condition ?: into.origin }
+        val merged = into.copy(firstSeen = listOf(into.firstSeen, from.firstSeen).filter { it.isNotEmpty() }.minOrNull() ?: "")
+        return consolidator.evaluateRoutine(merged, now)
     }
 
     // ------------------------------------------------------------ acting

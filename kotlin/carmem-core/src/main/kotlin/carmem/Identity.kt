@@ -4,7 +4,9 @@ import kotlinx.serialization.json.buildJsonObject
 import kotlinx.serialization.json.put
 import java.time.LocalDateTime
 
-private val HARD = setOf("seat_profile", "phone", "key_fob")
+/** Signals that identify a person on their own once bound. */
+val HARD_SIGNAL_KINDS = setOf("seat_profile", "phone", "key_fob")
+private val HARD = HARD_SIGNAL_KINDS
 private val SOFT = setOf("voice")
 
 class IdentityResolver(private val store: Store, private val policy: Policy) {
@@ -25,6 +27,13 @@ class IdentityResolver(private val store: Store, private val policy: Policy) {
         store.audit(now, driver, "identity.resolved", buildJsonObject { put("guest", isGuest) })
         return Occupancy(driver, passengers, isGuest, resolvedFrom = used)
     }
+
+    /** Who the driver signals resolve to, without auditing or opening anything; null means a guest. */
+    fun peekDriver(signals: List<IdentitySignal>): String? = resolveOne(signals.filter { it.role == "driver" }).first
+
+    /** Distinct enrolled persons any of the driver signals is bound to (hard kinds and voice). */
+    fun boundDrivers(signals: List<IdentitySignal>): Set<String> =
+        signals.filter { it.role == "driver" && (it.kind in HARD || it.kind in SOFT) }.mapNotNull { store.lookupIdentity(it.kind, it.value) }.toSet()
 
     private fun resolveOne(signals: List<IdentitySignal>): Pair<String?, List<String>> {
         val hard = linkedMapOf<String, String>()

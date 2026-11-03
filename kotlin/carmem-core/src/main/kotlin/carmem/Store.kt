@@ -36,6 +36,7 @@ class Store(private val db: SqlDriver) {
     fun getPerson(id: String): Person? = db.query("SELECT * FROM persons WHERE id=?", listOf(id)).firstOrNull()?.let {
         Person(it["id"] as String, it["name"] as String, json.decodeFromString(ListSerializer(String.serializer()), it["roles"] as String))
     }
+    fun renamePerson(id: String, name: String): Int = db.execute("UPDATE persons SET name=? WHERE id=?", listOf(name, id))
     fun bindIdentity(kind: String, value: String, personId: String) { db.execute("INSERT OR REPLACE INTO identity_bindings(kind,value,person_id) VALUES (?,?,?)", listOf(kind, value, personId)) }
     fun lookupIdentity(kind: String, value: String): String? = db.query("SELECT person_id FROM identity_bindings WHERE kind=? AND value=?", listOf(kind, value)).firstOrNull()?.get("person_id") as String?
 
@@ -57,6 +58,13 @@ class Store(private val db: SqlDriver) {
             episode(r) to if (withEmbeddings) (r["embedding"] as String?)?.let { json.decodeFromString(ListSerializer(Double.serializer()), it) } else null
         }
     }
+    /** Trip episodes in one scope, or in every scope when `scope` is null. */
+    fun tripEpisodes(scope: String?): List<Episode> =
+        (if (scope == null) db.query("SELECT * FROM episodes WHERE kind='trip' ORDER BY id")
+         else db.query("SELECT * FROM episodes WHERE kind='trip' AND scope=? ORDER BY id", listOf(scope))).map(::episode)
+    fun updateEpisode(id: Long, text: String, payload: JsonElement, embedding: List<Double>?): Int =
+        db.execute("UPDATE episodes SET text=?, payload=?, embedding=? WHERE id=?",
+            listOf(text, payload.toString(), embedding?.let { json.encodeToString(ListSerializer(Double.serializer()), it) }, id))
     fun deleteEpisodesBefore(cutoff: LocalDateTime): Int = db.execute("DELETE FROM episodes WHERE ts < ?", listOf(iso(cutoff)))
     private fun episode(r: Map<String, Any?>) = Episode((r["id"] as Number).toLong(), r["scope"] as String, r["kind"] as String, parseIso(r["ts"] as String), r["text"] as String, json.parseToJsonElement(r["payload"] as String))
 
@@ -130,6 +138,19 @@ class Store(private val db: SqlDriver) {
             ?.let { parseIso(it["expires"] as String).isAfter(now) } ?: false
     fun tombstones(scope: String? = null): List<Map<String, Any?>> =
         if (scope == null) db.query("SELECT * FROM tombstones") else db.query("SELECT * FROM tombstones WHERE scope=?", listOf(scope))
+    /** Move tombstone `old` to `new` in one scope (or all when null), keeping the later expiry on a clash. Returns rows moved. */
+    fun renameTombstone(scope: String?, old: String, new: String): Int {
+        if (old == new) return 0
+        val rows = if (scope == null) db.query("SELECT * FROM tombstones WHERE signature=?", listOf(old)) else db.query("SELECT * FROM tombstones WHERE scope=? AND signature=?", listOf(scope, old))
+        for (r in rows) {
+            val sc = r["scope"] as String
+            val existing = db.query("SELECT expires FROM tombstones WHERE scope=? AND signature=?", listOf(sc, new)).firstOrNull()?.get("expires") as String?
+            val expires = listOfNotNull(r["expires"] as String, existing).max()
+            db.execute("DELETE FROM tombstones WHERE scope=? AND signature=?", listOf(sc, old))
+            db.execute("INSERT OR REPLACE INTO tombstones(scope,signature,expires,reason) VALUES (?,?,?,?)", listOf(sc, new, expires, r["reason"] as String))
+        }
+        return rows.size
+    }
     fun purgeExpiredTombstones(now: LocalDateTime): Int = db.execute("DELETE FROM tombstones WHERE expires <= ?", listOf(iso(now)))
 
     // ---------------- scope-wide ----------------

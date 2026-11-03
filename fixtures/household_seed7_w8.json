@@ -1,0 +1,4370 @@
+{
+ "name": "household_seed7_w8",
+ "wire_version": "1",
+ "persons": [
+  {
+   "id": "asha",
+   "name": "Asha",
+   "signals": [
+    [
+     "key_fob",
+     "fob-asha"
+    ],
+    [
+     "phone",
+     "asha-phone"
+    ],
+    [
+     "voice",
+     "v-asha"
+    ]
+   ]
+  },
+  {
+   "id": "ben",
+   "name": "Ben",
+   "signals": [
+    [
+     "phone",
+     "ben-phone"
+    ],
+    [
+     "voice",
+     "v-ben"
+    ]
+   ]
+  }
+ ],
+ "guest_signal": {
+  "kind": "voice",
+  "value": "v-unknown",
+  "confidence": 0.55
+ },
+ "policy": {
+  "routine_window_days": 56,
+  "routine_candidate_min_occurrences": 2,
+  "routine_confirm_min_occurrences": 3,
+  "routine_confirm_min_distinct_weeks": 3,
+  "routine_confirm_min_ratio": 0.7,
+  "routine_contradiction_window_days": 14,
+  "routine_slot_tolerance_min": 45,
+  "routine_retire_after_days": 42,
+  "guest_routines": false,
+  "fact_window_days": 56,
+  "fact_implicit_min_support": 3,
+  "fact_confirm_ratio": 0.7,
+  "fact_split_conditions": [
+   "season",
+   "daypart"
+  ],
+  "fact_confirm_on_statement": true,
+  "reconcile_categories": [
+   "note"
+  ],
+  "reconcile_top_k": 5,
+  "reconcile_noop_similarity": 0.8,
+  "reconcile_update_similarity": 0.45,
+  "retrieval_recency_half_life_days": 14.0,
+  "no_weight": 1.0,
+  "demote_after_consecutive_no": 2,
+  "tombstone_days": 90,
+  "vehicle_min_distinct_persons": 2,
+  "episodic_retention_days": 42,
+  "hard_signal_priority": [
+   "seat_profile",
+   "phone",
+   "key_fob"
+  ],
+  "voice_alone_min_confidence": 1.01,
+  "tiers": {
+   "climate": "act",
+   "seat": "act",
+   "media": "act",
+   "route": "suggest",
+   "route_prefs": "silent",
+   "contacts": "never",
+   "health": "never",
+   "home_address": "silent",
+   "school": "silent",
+   "note": "silent",
+   "vehicle_fault": "silent"
+  },
+  "sensitivity": {
+   "health": "sensitive",
+   "contacts": "sensitive",
+   "home_address": "sensitive",
+   "school": "sensitive",
+   "finance": "sensitive",
+   "climate": "public",
+   "seat": "public",
+   "media": "personal",
+   "route": "personal",
+   "route_prefs": "personal",
+   "note": "personal",
+   "vehicle_fault": "public"
+  },
+  "mask_in_cloud_categories": [
+   "health",
+   "contacts",
+   "home_address",
+   "school",
+   "finance"
+  ],
+  "mask_in_cloud_sensitivity": [
+   "sensitive"
+  ]
+ },
+ "events": [
+  {
+   "ts": "2026-08-17T07:39:00",
+   "type": "trip",
+   "driver": "asha",
+   "week": 1,
+   "trip": {
+    "start": "2026-08-17T07:39:00",
+    "end": "2026-08-17T07:54:00",
+    "origin": "home",
+    "destination": "Oakwood Primary",
+    "occupants": [
+     "asha"
+    ],
+    "settings": {
+     "cabin_temp": 19.0
+    },
+    "route": {
+     "tolls": false
+    },
+    "distance_km": 14.374
+   }
+  },
+  {
+   "ts": "2026-08-17T07:41:00",
+   "type": "say",
+   "driver": "asha",
+   "week": 1,
+   "text": "my kid's school is Oakwood Primary"
+  },
+  {
+   "ts": "2026-08-17T08:04:00",
+   "type": "trip",
+   "driver": "asha",
+   "week": 1,
+   "trip": {
+    "start": "2026-08-17T08:04:00",
+    "end": "2026-08-17T08:29:00",
+    "origin": "Oakwood Primary",
+    "destination": "Riverside Office",
+    "occupants": [
+     "asha"
+    ],
+    "settings": {
+     "cabin_temp": 19.0
+    },
+    "route": {
+     "tolls": false
+    },
+    "distance_km": 10.811
+   }
+  },
+  {
+   "ts": "2026-08-17T17:25:00",
+   "type": "trip",
+   "driver": "asha",
+   "week": 1,
+   "trip": {
+    "start": "2026-08-17T17:25:00",
+    "end": "2026-08-17T17:55:00",
+    "origin": "Riverside Office",
+    "destination": "home",
+    "occupants": [
+     "asha"
+    ],
+    "settings": {
+     "cabin_temp": 19.0
+    },
+    "route": {
+     "tolls": false
+    },
+    "distance_km": 12.855
+   }
+  },
+  {
+   "ts": "2026-08-18T07:35:00",
+   "type": "trip",
+   "driver": "asha",
+   "week": 1,
+   "trip": {
+    "start": "2026-08-18T07:35:00",
+    "end": "2026-08-18T07:50:00",
+    "origin": "home",
+    "destination": "Oakwood Primary",
+    "occupants": [
+     "asha"
+    ],
+    "settings": {
+     "cabin_temp": 19.0
+    },
+    "route": {
+     "tolls": false
+    },
+    "distance_km": 7.388
+   }
+  },
+  {
+   "ts": "2026-08-18T07:57:00",
+   "type": "trip",
+   "driver": "asha",
+   "week": 1,
+   "trip": {
+    "start": "2026-08-18T07:57:00",
+    "end": "2026-08-18T08:22:00",
+    "origin": "Oakwood Primary",
+    "destination": "Riverside Office",
+    "occupants": [
+     "asha"
+    ],
+    "settings": {
+     "cabin_temp": 19.0
+    },
+    "route": {
+     "tolls": false
+    },
+    "distance_km": 13.916
+   }
+  },
+  {
+   "ts": "2026-08-18T17:27:00",
+   "type": "trip",
+   "driver": "asha",
+   "week": 1,
+   "trip": {
+    "start": "2026-08-18T17:27:00",
+    "end": "2026-08-18T17:57:00",
+    "origin": "Riverside Office",
+    "destination": "home",
+    "occupants": [
+     "asha"
+    ],
+    "settings": {
+     "cabin_temp": 19.0
+    },
+    "route": {
+     "tolls": false
+    },
+    "distance_km": 3.45
+   }
+  },
+  {
+   "ts": "2026-08-18T18:00:00",
+   "type": "trip",
+   "driver": "ben",
+   "week": 1,
+   "trip": {
+    "start": "2026-08-18T18:00:00",
+    "end": "2026-08-18T18:15:00",
+    "origin": "home",
+    "destination": "Lotus Yoga",
+    "occupants": [
+     "ben"
+    ],
+    "settings": {
+     "cabin_temp": 23.0
+    },
+    "route": {
+     "tolls": false
+    },
+    "distance_km": 8.018
+   }
+  },
+  {
+   "ts": "2026-08-19T07:37:00",
+   "type": "trip",
+   "driver": "asha",
+   "week": 1,
+   "trip": {
+    "start": "2026-08-19T07:37:00",
+    "end": "2026-08-19T07:52:00",
+    "origin": "home",
+    "destination": "Oakwood Primary",
+    "occupants": [
+     "asha"
+    ],
+    "settings": {
+     "cabin_temp": 19.0
+    },
+    "route": {
+     "tolls": false
+    },
+    "distance_km": 4.089
+   }
+  },
+  {
+   "ts": "2026-08-19T08:02:00",
+   "type": "trip",
+   "driver": "asha",
+   "week": 1,
+   "trip": {
+    "start": "2026-08-19T08:02:00",
+    "end": "2026-08-19T08:27:00",
+    "origin": "Oakwood Primary",
+    "destination": "Riverside Office",
+    "occupants": [
+     "asha"
+    ],
+    "settings": {
+     "cabin_temp": 19.0
+    },
+    "route": {
+     "tolls": false
+    },
+    "distance_km": 3.709
+   }
+  },
+  {
+   "ts": "2026-08-19T17:33:00",
+   "type": "trip",
+   "driver": "asha",
+   "week": 1,
+   "trip": {
+    "start": "2026-08-19T17:33:00",
+    "end": "2026-08-19T18:03:00",
+    "origin": "Riverside Office",
+    "destination": "home",
+    "occupants": [
+     "asha"
+    ],
+    "settings": {
+     "cabin_temp": 19.0
+    },
+    "route": {
+     "tolls": false
+    },
+    "distance_km": 4.486
+   }
+  },
+  {
+   "ts": "2026-08-19T17:37:00",
+   "type": "say",
+   "driver": "asha",
+   "week": 1,
+   "text": "I'm allergic to penicillin"
+  },
+  {
+   "ts": "2026-08-20T07:37:00",
+   "type": "trip",
+   "driver": "asha",
+   "week": 1,
+   "trip": {
+    "start": "2026-08-20T07:37:00",
+    "end": "2026-08-20T07:52:00",
+    "origin": "home",
+    "destination": "Oakwood Primary",
+    "occupants": [
+     "asha"
+    ],
+    "settings": {
+     "cabin_temp": 19.0
+    },
+    "route": {
+     "tolls": false
+    },
+    "distance_km": 10.568
+   }
+  },
+  {
+   "ts": "2026-08-20T08:03:00",
+   "type": "trip",
+   "driver": "asha",
+   "week": 1,
+   "trip": {
+    "start": "2026-08-20T08:03:00",
+    "end": "2026-08-20T08:28:00",
+    "origin": "Oakwood Primary",
+    "destination": "Riverside Office",
+    "occupants": [
+     "asha"
+    ],
+    "settings": {
+     "cabin_temp": 19.0
+    },
+    "route": {
+     "tolls": false
+    },
+    "distance_km": 14.373
+   }
+  },
+  {
+   "ts": "2026-08-20T17:33:00",
+   "type": "trip",
+   "driver": "asha",
+   "week": 1,
+   "trip": {
+    "start": "2026-08-20T17:33:00",
+    "end": "2026-08-20T18:03:00",
+    "origin": "Riverside Office",
+    "destination": "home",
+    "occupants": [
+     "asha"
+    ],
+    "settings": {
+     "cabin_temp": 19.0
+    },
+    "route": {
+     "tolls": false
+    },
+    "distance_km": 10.026
+   }
+  },
+  {
+   "ts": "2026-08-20T17:54:00",
+   "type": "trip",
+   "driver": "ben",
+   "week": 1,
+   "trip": {
+    "start": "2026-08-20T17:54:00",
+    "end": "2026-08-20T18:09:00",
+    "origin": "home",
+    "destination": "Lotus Yoga",
+    "occupants": [
+     "ben"
+    ],
+    "settings": {
+     "cabin_temp": 23.0
+    },
+    "route": {
+     "tolls": false
+    },
+    "distance_km": 14.715
+   }
+  },
+  {
+   "ts": "2026-08-21T07:34:00",
+   "type": "trip",
+   "driver": "asha",
+   "week": 1,
+   "trip": {
+    "start": "2026-08-21T07:34:00",
+    "end": "2026-08-21T07:49:00",
+    "origin": "home",
+    "destination": "Oakwood Primary",
+    "occupants": [
+     "asha"
+    ],
+    "settings": {
+     "cabin_temp": 19.0
+    },
+    "route": {
+     "tolls": false
+    },
+    "distance_km": 9.68
+   }
+  },
+  {
+   "ts": "2026-08-21T07:57:00",
+   "type": "trip",
+   "driver": "asha",
+   "week": 1,
+   "trip": {
+    "start": "2026-08-21T07:57:00",
+    "end": "2026-08-21T08:22:00",
+    "origin": "Oakwood Primary",
+    "destination": "Riverside Office",
+    "occupants": [
+     "asha"
+    ],
+    "settings": {
+     "cabin_temp": 19.0
+    },
+    "route": {
+     "tolls": false
+    },
+    "distance_km": 6.475
+   }
+  },
+  {
+   "ts": "2026-08-21T17:26:00",
+   "type": "trip",
+   "driver": "asha",
+   "week": 1,
+   "trip": {
+    "start": "2026-08-21T17:26:00",
+    "end": "2026-08-21T17:56:00",
+    "origin": "Riverside Office",
+    "destination": "home",
+    "occupants": [
+     "asha"
+    ],
+    "settings": {
+     "cabin_temp": 19.0
+    },
+    "route": {
+     "tolls": false
+    },
+    "distance_km": 9.488
+   }
+  },
+  {
+   "ts": "2026-08-21T18:33:00",
+   "type": "trip",
+   "driver": "asha",
+   "week": 1,
+   "trip": {
+    "start": "2026-08-21T18:33:00",
+    "end": "2026-08-21T18:48:00",
+    "origin": "home",
+    "destination": "FitLife Gym",
+    "occupants": [
+     "asha"
+    ],
+    "settings": {
+     "cabin_temp": 19.0
+    },
+    "route": {
+     "tolls": false
+    },
+    "distance_km": 6.702
+   }
+  },
+  {
+   "ts": "2026-08-22T09:56:00",
+   "type": "trip",
+   "driver": "ben",
+   "week": 1,
+   "trip": {
+    "start": "2026-08-22T09:56:00",
+    "end": "2026-08-22T10:16:00",
+    "origin": "home",
+    "destination": "Farmers Market",
+    "occupants": [
+     "ben"
+    ],
+    "settings": {
+     "cabin_temp": 23.0
+    },
+    "route": {
+     "tolls": false
+    },
+    "distance_km": 4.237
+   }
+  },
+  {
+   "ts": "2026-08-24T07:43:00",
+   "type": "trip",
+   "driver": "asha",
+   "week": 2,
+   "trip": {
+    "start": "2026-08-24T07:43:00",
+    "end": "2026-08-24T07:58:00",
+    "origin": "home",
+    "destination": "Oakwood Primary",
+    "occupants": [
+     "asha"
+    ],
+    "settings": {
+     "cabin_temp": 19.0
+    },
+    "route": {
+     "tolls": false
+    },
+    "distance_km": 10.667
+   }
+  },
+  {
+   "ts": "2026-08-24T08:07:00",
+   "type": "trip",
+   "driver": "asha",
+   "week": 2,
+   "trip": {
+    "start": "2026-08-24T08:07:00",
+    "end": "2026-08-24T08:32:00",
+    "origin": "Oakwood Primary",
+    "destination": "Riverside Office",
+    "occupants": [
+     "asha"
+    ],
+    "settings": {
+     "cabin_temp": 19.0
+    },
+    "route": {
+     "tolls": false
+    },
+    "distance_km": 4.169
+   }
+  },
+  {
+   "ts": "2026-08-24T17:35:00",
+   "type": "trip",
+   "driver": "asha",
+   "week": 2,
+   "trip": {
+    "start": "2026-08-24T17:35:00",
+    "end": "2026-08-24T18:05:00",
+    "origin": "Riverside Office",
+    "destination": "home",
+    "occupants": [
+     "asha"
+    ],
+    "settings": {
+     "cabin_temp": 19.0
+    },
+    "route": {
+     "tolls": false
+    },
+    "distance_km": 3.753
+   }
+  },
+  {
+   "ts": "2026-08-25T07:34:00",
+   "type": "trip",
+   "driver": "asha",
+   "week": 2,
+   "trip": {
+    "start": "2026-08-25T07:34:00",
+    "end": "2026-08-25T07:49:00",
+    "origin": "home",
+    "destination": "Oakwood Primary",
+    "occupants": [
+     "asha"
+    ],
+    "settings": {
+     "cabin_temp": 19.0
+    },
+    "route": {
+     "tolls": false
+    },
+    "distance_km": 10.428
+   }
+  },
+  {
+   "ts": "2026-08-25T07:59:00",
+   "type": "trip",
+   "driver": "asha",
+   "week": 2,
+   "trip": {
+    "start": "2026-08-25T07:59:00",
+    "end": "2026-08-25T08:24:00",
+    "origin": "Oakwood Primary",
+    "destination": "Riverside Office",
+    "occupants": [
+     "asha"
+    ],
+    "settings": {
+     "cabin_temp": 19.0
+    },
+    "route": {
+     "tolls": false
+    },
+    "distance_km": 11.165
+   }
+  },
+  {
+   "ts": "2026-08-25T17:30:00",
+   "type": "trip",
+   "driver": "asha",
+   "week": 2,
+   "trip": {
+    "start": "2026-08-25T17:30:00",
+    "end": "2026-08-25T18:00:00",
+    "origin": "Riverside Office",
+    "destination": "home",
+    "occupants": [
+     "asha"
+    ],
+    "settings": {
+     "cabin_temp": 19.0
+    },
+    "route": {
+     "tolls": false
+    },
+    "distance_km": 12.327
+   }
+  },
+  {
+   "ts": "2026-08-25T17:35:00",
+   "type": "say",
+   "driver": "asha",
+   "week": 2,
+   "text": "I hate toll roads"
+  },
+  {
+   "ts": "2026-08-25T17:36:00",
+   "type": "say",
+   "driver": "asha",
+   "week": 2,
+   "text": "the left rear sensor is flaky"
+  },
+  {
+   "ts": "2026-08-25T18:01:00",
+   "type": "trip",
+   "driver": "ben",
+   "week": 2,
+   "trip": {
+    "start": "2026-08-25T18:01:00",
+    "end": "2026-08-25T18:16:00",
+    "origin": "home",
+    "destination": "Lotus Yoga",
+    "occupants": [
+     "ben"
+    ],
+    "settings": {
+     "cabin_temp": 23.0
+    },
+    "route": {
+     "tolls": false
+    },
+    "distance_km": 10.027
+   }
+  },
+  {
+   "ts": "2026-08-26T07:41:00",
+   "type": "trip",
+   "driver": "asha",
+   "week": 2,
+   "trip": {
+    "start": "2026-08-26T07:41:00",
+    "end": "2026-08-26T07:56:00",
+    "origin": "home",
+    "destination": "Oakwood Primary",
+    "occupants": [
+     "asha"
+    ],
+    "settings": {
+     "cabin_temp": 19.0
+    },
+    "route": {
+     "tolls": false
+    },
+    "distance_km": 7.339
+   }
+  },
+  {
+   "ts": "2026-08-26T08:04:00",
+   "type": "trip",
+   "driver": "asha",
+   "week": 2,
+   "trip": {
+    "start": "2026-08-26T08:04:00",
+    "end": "2026-08-26T08:29:00",
+    "origin": "Oakwood Primary",
+    "destination": "Riverside Office",
+    "occupants": [
+     "asha"
+    ],
+    "settings": {
+     "cabin_temp": 19.0
+    },
+    "route": {
+     "tolls": false
+    },
+    "distance_km": 12.533
+   }
+  },
+  {
+   "ts": "2026-08-26T17:35:00",
+   "type": "trip",
+   "driver": "asha",
+   "week": 2,
+   "trip": {
+    "start": "2026-08-26T17:35:00",
+    "end": "2026-08-26T18:05:00",
+    "origin": "Riverside Office",
+    "destination": "home",
+    "occupants": [
+     "asha"
+    ],
+    "settings": {
+     "cabin_temp": 19.0
+    },
+    "route": {
+     "tolls": false
+    },
+    "distance_km": 12.358
+   }
+  },
+  {
+   "ts": "2026-08-27T07:35:00",
+   "type": "trip",
+   "driver": "asha",
+   "week": 2,
+   "trip": {
+    "start": "2026-08-27T07:35:00",
+    "end": "2026-08-27T07:50:00",
+    "origin": "home",
+    "destination": "Oakwood Primary",
+    "occupants": [
+     "asha"
+    ],
+    "settings": {
+     "cabin_temp": 19.0
+    },
+    "route": {
+     "tolls": false
+    },
+    "distance_km": 9.893
+   }
+  },
+  {
+   "ts": "2026-08-27T08:01:00",
+   "type": "trip",
+   "driver": "asha",
+   "week": 2,
+   "trip": {
+    "start": "2026-08-27T08:01:00",
+    "end": "2026-08-27T08:26:00",
+    "origin": "Oakwood Primary",
+    "destination": "Riverside Office",
+    "occupants": [
+     "asha"
+    ],
+    "settings": {
+     "cabin_temp": 19.0
+    },
+    "route": {
+     "tolls": false
+    },
+    "distance_km": 8.941
+   }
+  },
+  {
+   "ts": "2026-08-27T17:29:00",
+   "type": "trip",
+   "driver": "asha",
+   "week": 2,
+   "trip": {
+    "start": "2026-08-27T17:29:00",
+    "end": "2026-08-27T17:59:00",
+    "origin": "Riverside Office",
+    "destination": "home",
+    "occupants": [
+     "asha"
+    ],
+    "settings": {
+     "cabin_temp": 19.0
+    },
+    "route": {
+     "tolls": false
+    },
+    "distance_km": 11.753
+   }
+  },
+  {
+   "ts": "2026-08-27T17:58:00",
+   "type": "trip",
+   "driver": "ben",
+   "week": 2,
+   "trip": {
+    "start": "2026-08-27T17:58:00",
+    "end": "2026-08-27T18:13:00",
+    "origin": "home",
+    "destination": "Lotus Yoga",
+    "occupants": [
+     "ben"
+    ],
+    "settings": {
+     "cabin_temp": 23.0
+    },
+    "route": {
+     "tolls": false
+    },
+    "distance_km": 10.308
+   }
+  },
+  {
+   "ts": "2026-08-28T07:35:00",
+   "type": "trip",
+   "driver": "asha",
+   "week": 2,
+   "trip": {
+    "start": "2026-08-28T07:35:00",
+    "end": "2026-08-28T07:50:00",
+    "origin": "home",
+    "destination": "Oakwood Primary",
+    "occupants": [
+     "asha"
+    ],
+    "settings": {
+     "cabin_temp": 19.0
+    },
+    "route": {
+     "tolls": false
+    },
+    "distance_km": 4.417
+   }
+  },
+  {
+   "ts": "2026-08-28T08:00:00",
+   "type": "trip",
+   "driver": "asha",
+   "week": 2,
+   "trip": {
+    "start": "2026-08-28T08:00:00",
+    "end": "2026-08-28T08:25:00",
+    "origin": "Oakwood Primary",
+    "destination": "Riverside Office",
+    "occupants": [
+     "asha"
+    ],
+    "settings": {
+     "cabin_temp": 19.0
+    },
+    "route": {
+     "tolls": false
+    },
+    "distance_km": 4.98
+   }
+  },
+  {
+   "ts": "2026-08-28T17:29:00",
+   "type": "trip",
+   "driver": "asha",
+   "week": 2,
+   "trip": {
+    "start": "2026-08-28T17:29:00",
+    "end": "2026-08-28T17:59:00",
+    "origin": "Riverside Office",
+    "destination": "home",
+    "occupants": [
+     "asha"
+    ],
+    "settings": {
+     "cabin_temp": 19.0
+    },
+    "route": {
+     "tolls": false
+    },
+    "distance_km": 4.824
+   }
+  },
+  {
+   "ts": "2026-08-28T18:31:00",
+   "type": "trip",
+   "driver": "asha",
+   "week": 2,
+   "trip": {
+    "start": "2026-08-28T18:31:00",
+    "end": "2026-08-28T18:46:00",
+    "origin": "home",
+    "destination": "FitLife Gym",
+    "occupants": [
+     "asha"
+    ],
+    "settings": {
+     "cabin_temp": 19.0
+    },
+    "route": {
+     "tolls": false
+    },
+    "distance_km": 8.06
+   }
+  },
+  {
+   "ts": "2026-08-29T09:55:00",
+   "type": "trip",
+   "driver": "ben",
+   "week": 2,
+   "trip": {
+    "start": "2026-08-29T09:55:00",
+    "end": "2026-08-29T10:15:00",
+    "origin": "home",
+    "destination": "Farmers Market",
+    "occupants": [
+     "ben"
+    ],
+    "settings": {
+     "cabin_temp": 23.0
+    },
+    "route": {
+     "tolls": false
+    },
+    "distance_km": 12.175
+   }
+  },
+  {
+   "ts": "2026-08-31T07:43:00",
+   "type": "trip",
+   "driver": "asha",
+   "week": 3,
+   "trip": {
+    "start": "2026-08-31T07:43:00",
+    "end": "2026-08-31T07:58:00",
+    "origin": "home",
+    "destination": "Oakwood Primary",
+    "occupants": [
+     "asha"
+    ],
+    "settings": {
+     "cabin_temp": 19.0
+    },
+    "route": {
+     "tolls": false
+    },
+    "distance_km": 12.469
+   }
+  },
+  {
+   "ts": "2026-08-31T08:11:00",
+   "type": "trip",
+   "driver": "asha",
+   "week": 3,
+   "trip": {
+    "start": "2026-08-31T08:11:00",
+    "end": "2026-08-31T08:36:00",
+    "origin": "Oakwood Primary",
+    "destination": "Riverside Office",
+    "occupants": [
+     "asha"
+    ],
+    "settings": {
+     "cabin_temp": 19.0
+    },
+    "route": {
+     "tolls": false
+    },
+    "distance_km": 6.765
+   }
+  },
+  {
+   "ts": "2026-08-31T17:35:00",
+   "type": "trip",
+   "driver": "asha",
+   "week": 3,
+   "trip": {
+    "start": "2026-08-31T17:35:00",
+    "end": "2026-08-31T18:05:00",
+    "origin": "Riverside Office",
+    "destination": "home",
+    "occupants": [
+     "asha"
+    ],
+    "settings": {
+     "cabin_temp": 19.0
+    },
+    "route": {
+     "tolls": false
+    },
+    "distance_km": 7.202
+   }
+  },
+  {
+   "ts": "2026-09-01T07:41:00",
+   "type": "trip",
+   "driver": "asha",
+   "week": 3,
+   "trip": {
+    "start": "2026-09-01T07:41:00",
+    "end": "2026-09-01T07:56:00",
+    "origin": "home",
+    "destination": "Oakwood Primary",
+    "occupants": [
+     "asha"
+    ],
+    "settings": {
+     "cabin_temp": 21.0
+    },
+    "route": {
+     "tolls": false
+    },
+    "distance_km": 9.959
+   }
+  },
+  {
+   "ts": "2026-09-01T08:06:00",
+   "type": "trip",
+   "driver": "asha",
+   "week": 3,
+   "trip": {
+    "start": "2026-09-01T08:06:00",
+    "end": "2026-09-01T08:31:00",
+    "origin": "Oakwood Primary",
+    "destination": "Riverside Office",
+    "occupants": [
+     "asha"
+    ],
+    "settings": {
+     "cabin_temp": 21.0
+    },
+    "route": {
+     "tolls": false
+    },
+    "distance_km": 3.825
+   }
+  },
+  {
+   "ts": "2026-09-01T17:25:00",
+   "type": "trip",
+   "driver": "asha",
+   "week": 3,
+   "trip": {
+    "start": "2026-09-01T17:25:00",
+    "end": "2026-09-01T17:55:00",
+    "origin": "Riverside Office",
+    "destination": "home",
+    "occupants": [
+     "asha"
+    ],
+    "settings": {
+     "cabin_temp": 21.0
+    },
+    "route": {
+     "tolls": false
+    },
+    "distance_km": 14.336
+   }
+  },
+  {
+   "ts": "2026-09-01T18:01:00",
+   "type": "trip",
+   "driver": "ben",
+   "week": 3,
+   "trip": {
+    "start": "2026-09-01T18:01:00",
+    "end": "2026-09-01T18:16:00",
+    "origin": "home",
+    "destination": "Lotus Yoga",
+    "occupants": [
+     "ben"
+    ],
+    "settings": {
+     "cabin_temp": 23.0
+    },
+    "route": {
+     "tolls": false
+    },
+    "distance_km": 11.365
+   }
+  },
+  {
+   "ts": "2026-09-02T07:35:00",
+   "type": "trip",
+   "driver": "asha",
+   "week": 3,
+   "trip": {
+    "start": "2026-09-02T07:35:00",
+    "end": "2026-09-02T07:50:00",
+    "origin": "home",
+    "destination": "Oakwood Primary",
+    "occupants": [
+     "asha"
+    ],
+    "settings": {
+     "cabin_temp": 21.0
+    },
+    "route": {
+     "tolls": false
+    },
+    "distance_km": 3.728
+   }
+  },
+  {
+   "ts": "2026-09-02T08:02:00",
+   "type": "trip",
+   "driver": "asha",
+   "week": 3,
+   "trip": {
+    "start": "2026-09-02T08:02:00",
+    "end": "2026-09-02T08:27:00",
+    "origin": "Oakwood Primary",
+    "destination": "Riverside Office",
+    "occupants": [
+     "asha"
+    ],
+    "settings": {
+     "cabin_temp": 21.0
+    },
+    "route": {
+     "tolls": false
+    },
+    "distance_km": 6.715
+   }
+  },
+  {
+   "ts": "2026-09-02T12:00:00",
+   "type": "sensor",
+   "driver": "vehicle",
+   "week": 3,
+   "payload": {
+    "key": "left_rear_sensor",
+    "value": "intermittent fault code B1234"
+   }
+  },
+  {
+   "ts": "2026-09-02T17:33:00",
+   "type": "trip",
+   "driver": "asha",
+   "week": 3,
+   "trip": {
+    "start": "2026-09-02T17:33:00",
+    "end": "2026-09-02T18:03:00",
+    "origin": "Riverside Office",
+    "destination": "home",
+    "occupants": [
+     "asha"
+    ],
+    "settings": {
+     "cabin_temp": 21.0
+    },
+    "route": {
+     "tolls": false
+    },
+    "distance_km": 14.917
+   }
+  },
+  {
+   "ts": "2026-09-03T07:41:00",
+   "type": "trip",
+   "driver": "asha",
+   "week": 3,
+   "trip": {
+    "start": "2026-09-03T07:41:00",
+    "end": "2026-09-03T07:56:00",
+    "origin": "home",
+    "destination": "Oakwood Primary",
+    "occupants": [
+     "asha"
+    ],
+    "settings": {
+     "cabin_temp": 21.0
+    },
+    "route": {
+     "tolls": false
+    },
+    "distance_km": 6.415
+   }
+  },
+  {
+   "ts": "2026-09-03T08:06:00",
+   "type": "trip",
+   "driver": "asha",
+   "week": 3,
+   "trip": {
+    "start": "2026-09-03T08:06:00",
+    "end": "2026-09-03T08:31:00",
+    "origin": "Oakwood Primary",
+    "destination": "Riverside Office",
+    "occupants": [
+     "asha"
+    ],
+    "settings": {
+     "cabin_temp": 21.0
+    },
+    "route": {
+     "tolls": false
+    },
+    "distance_km": 13.644
+   }
+  },
+  {
+   "ts": "2026-09-03T17:29:00",
+   "type": "trip",
+   "driver": "asha",
+   "week": 3,
+   "trip": {
+    "start": "2026-09-03T17:29:00",
+    "end": "2026-09-03T17:59:00",
+    "origin": "Riverside Office",
+    "destination": "home",
+    "occupants": [
+     "asha"
+    ],
+    "settings": {
+     "cabin_temp": 21.0
+    },
+    "route": {
+     "tolls": false
+    },
+    "distance_km": 3.271
+   }
+  },
+  {
+   "ts": "2026-09-03T18:01:00",
+   "type": "trip",
+   "driver": "ben",
+   "week": 3,
+   "trip": {
+    "start": "2026-09-03T18:01:00",
+    "end": "2026-09-03T18:16:00",
+    "origin": "home",
+    "destination": "Lotus Yoga",
+    "occupants": [
+     "ben"
+    ],
+    "settings": {
+     "cabin_temp": 23.0
+    },
+    "route": {
+     "tolls": false
+    },
+    "distance_km": 7.266
+   }
+  },
+  {
+   "ts": "2026-09-04T07:43:00",
+   "type": "trip",
+   "driver": "asha",
+   "week": 3,
+   "trip": {
+    "start": "2026-09-04T07:43:00",
+    "end": "2026-09-04T07:58:00",
+    "origin": "home",
+    "destination": "Oakwood Primary",
+    "occupants": [
+     "asha"
+    ],
+    "settings": {
+     "cabin_temp": 21.0
+    },
+    "route": {
+     "tolls": false
+    },
+    "distance_km": 4.405
+   }
+  },
+  {
+   "ts": "2026-09-04T08:05:00",
+   "type": "trip",
+   "driver": "asha",
+   "week": 3,
+   "trip": {
+    "start": "2026-09-04T08:05:00",
+    "end": "2026-09-04T08:30:00",
+    "origin": "Oakwood Primary",
+    "destination": "Riverside Office",
+    "occupants": [
+     "asha"
+    ],
+    "settings": {
+     "cabin_temp": 21.0
+    },
+    "route": {
+     "tolls": false
+    },
+    "distance_km": 5.618
+   }
+  },
+  {
+   "ts": "2026-09-04T17:28:00",
+   "type": "trip",
+   "driver": "asha",
+   "week": 3,
+   "trip": {
+    "start": "2026-09-04T17:28:00",
+    "end": "2026-09-04T17:58:00",
+    "origin": "Riverside Office",
+    "destination": "home",
+    "occupants": [
+     "asha"
+    ],
+    "settings": {
+     "cabin_temp": 21.0
+    },
+    "route": {
+     "tolls": false
+    },
+    "distance_km": 4.552
+   }
+  },
+  {
+   "ts": "2026-09-04T18:27:00",
+   "type": "trip",
+   "driver": "asha",
+   "week": 3,
+   "trip": {
+    "start": "2026-09-04T18:27:00",
+    "end": "2026-09-04T18:42:00",
+    "origin": "home",
+    "destination": "FitLife Gym",
+    "occupants": [
+     "asha"
+    ],
+    "settings": {
+     "cabin_temp": 21.0
+    },
+    "route": {
+     "tolls": false
+    },
+    "distance_km": 7.775
+   }
+  },
+  {
+   "ts": "2026-09-05T10:01:00",
+   "type": "trip",
+   "driver": "ben",
+   "week": 3,
+   "trip": {
+    "start": "2026-09-05T10:01:00",
+    "end": "2026-09-05T10:21:00",
+    "origin": "home",
+    "destination": "Farmers Market",
+    "occupants": [
+     "ben"
+    ],
+    "settings": {
+     "cabin_temp": 23.0
+    },
+    "route": {
+     "tolls": false
+    },
+    "distance_km": 3.967
+   }
+  },
+  {
+   "ts": "2026-09-07T07:41:00",
+   "type": "trip",
+   "driver": "asha",
+   "week": 4,
+   "trip": {
+    "start": "2026-09-07T07:41:00",
+    "end": "2026-09-07T07:56:00",
+    "origin": "home",
+    "destination": "Oakwood Primary",
+    "occupants": [
+     "asha"
+    ],
+    "settings": {
+     "cabin_temp": 21.0
+    },
+    "route": {
+     "tolls": false
+    },
+    "distance_km": 7.82
+   }
+  },
+  {
+   "ts": "2026-09-07T08:05:00",
+   "type": "trip",
+   "driver": "asha",
+   "week": 4,
+   "trip": {
+    "start": "2026-09-07T08:05:00",
+    "end": "2026-09-07T08:30:00",
+    "origin": "Oakwood Primary",
+    "destination": "Riverside Office",
+    "occupants": [
+     "asha"
+    ],
+    "settings": {
+     "cabin_temp": 21.0
+    },
+    "route": {
+     "tolls": false
+    },
+    "distance_km": 13.601
+   }
+  },
+  {
+   "ts": "2026-09-07T17:30:00",
+   "type": "trip",
+   "driver": "asha",
+   "week": 4,
+   "trip": {
+    "start": "2026-09-07T17:30:00",
+    "end": "2026-09-07T18:00:00",
+    "origin": "Riverside Office",
+    "destination": "home",
+    "occupants": [
+     "asha"
+    ],
+    "settings": {
+     "cabin_temp": 21.0
+    },
+    "route": {
+     "tolls": false
+    },
+    "distance_km": 13.368
+   }
+  },
+  {
+   "ts": "2026-09-08T07:38:00",
+   "type": "trip",
+   "driver": "asha",
+   "week": 4,
+   "trip": {
+    "start": "2026-09-08T07:38:00",
+    "end": "2026-09-08T07:53:00",
+    "origin": "home",
+    "destination": "Oakwood Primary",
+    "occupants": [
+     "asha"
+    ],
+    "settings": {
+     "cabin_temp": 21.0
+    },
+    "route": {
+     "tolls": false
+    },
+    "distance_km": 11.477
+   }
+  },
+  {
+   "ts": "2026-09-08T08:02:00",
+   "type": "trip",
+   "driver": "asha",
+   "week": 4,
+   "trip": {
+    "start": "2026-09-08T08:02:00",
+    "end": "2026-09-08T08:27:00",
+    "origin": "Oakwood Primary",
+    "destination": "Riverside Office",
+    "occupants": [
+     "asha"
+    ],
+    "settings": {
+     "cabin_temp": 21.0
+    },
+    "route": {
+     "tolls": false
+    },
+    "distance_km": 11.193
+   }
+  },
+  {
+   "ts": "2026-09-08T17:30:00",
+   "type": "trip",
+   "driver": "asha",
+   "week": 4,
+   "trip": {
+    "start": "2026-09-08T17:30:00",
+    "end": "2026-09-08T18:00:00",
+    "origin": "Riverside Office",
+    "destination": "home",
+    "occupants": [
+     "asha"
+    ],
+    "settings": {
+     "cabin_temp": 21.0
+    },
+    "route": {
+     "tolls": false
+    },
+    "distance_km": 14.493
+   }
+  },
+  {
+   "ts": "2026-09-08T17:56:00",
+   "type": "trip",
+   "driver": "ben",
+   "week": 4,
+   "trip": {
+    "start": "2026-09-08T17:56:00",
+    "end": "2026-09-08T18:11:00",
+    "origin": "home",
+    "destination": "Lotus Yoga",
+    "occupants": [
+     "ben"
+    ],
+    "settings": {
+     "cabin_temp": 23.0
+    },
+    "route": {
+     "tolls": false
+    },
+    "distance_km": 3.996
+   }
+  },
+  {
+   "ts": "2026-09-08T17:59:00",
+   "type": "say",
+   "driver": "ben",
+   "week": 4,
+   "text": "the left rear sensor keeps beeping at me"
+  },
+  {
+   "ts": "2026-09-09T07:36:00",
+   "type": "trip",
+   "driver": "asha",
+   "week": 4,
+   "trip": {
+    "start": "2026-09-09T07:36:00",
+    "end": "2026-09-09T07:51:00",
+    "origin": "home",
+    "destination": "Oakwood Primary",
+    "occupants": [
+     "asha"
+    ],
+    "settings": {
+     "cabin_temp": 21.0
+    },
+    "route": {
+     "tolls": false
+    },
+    "distance_km": 5.783
+   }
+  },
+  {
+   "ts": "2026-09-09T07:59:00",
+   "type": "trip",
+   "driver": "asha",
+   "week": 4,
+   "trip": {
+    "start": "2026-09-09T07:59:00",
+    "end": "2026-09-09T08:24:00",
+    "origin": "Oakwood Primary",
+    "destination": "Riverside Office",
+    "occupants": [
+     "asha"
+    ],
+    "settings": {
+     "cabin_temp": 21.0
+    },
+    "route": {
+     "tolls": false
+    },
+    "distance_km": 3.145
+   }
+  },
+  {
+   "ts": "2026-09-09T17:33:00",
+   "type": "trip",
+   "driver": "asha",
+   "week": 4,
+   "trip": {
+    "start": "2026-09-09T17:33:00",
+    "end": "2026-09-09T18:03:00",
+    "origin": "Riverside Office",
+    "destination": "home",
+    "occupants": [
+     "asha"
+    ],
+    "settings": {
+     "cabin_temp": 21.0
+    },
+    "route": {
+     "tolls": false
+    },
+    "distance_km": 5.188
+   }
+  },
+  {
+   "ts": "2026-09-10T07:38:00",
+   "type": "trip",
+   "driver": "asha",
+   "week": 4,
+   "trip": {
+    "start": "2026-09-10T07:38:00",
+    "end": "2026-09-10T07:53:00",
+    "origin": "home",
+    "destination": "Oakwood Primary",
+    "occupants": [
+     "asha"
+    ],
+    "settings": {
+     "cabin_temp": 21.0
+    },
+    "route": {
+     "tolls": false
+    },
+    "distance_km": 3.049
+   }
+  },
+  {
+   "ts": "2026-09-10T08:03:00",
+   "type": "trip",
+   "driver": "asha",
+   "week": 4,
+   "trip": {
+    "start": "2026-09-10T08:03:00",
+    "end": "2026-09-10T08:28:00",
+    "origin": "Oakwood Primary",
+    "destination": "Riverside Office",
+    "occupants": [
+     "asha"
+    ],
+    "settings": {
+     "cabin_temp": 21.0
+    },
+    "route": {
+     "tolls": false
+    },
+    "distance_km": 9.415
+   }
+  },
+  {
+   "ts": "2026-09-10T17:33:00",
+   "type": "trip",
+   "driver": "asha",
+   "week": 4,
+   "trip": {
+    "start": "2026-09-10T17:33:00",
+    "end": "2026-09-10T18:03:00",
+    "origin": "Riverside Office",
+    "destination": "home",
+    "occupants": [
+     "asha"
+    ],
+    "settings": {
+     "cabin_temp": 21.0
+    },
+    "route": {
+     "tolls": false
+    },
+    "distance_km": 9.796
+   }
+  },
+  {
+   "ts": "2026-09-10T17:56:00",
+   "type": "trip",
+   "driver": "ben",
+   "week": 4,
+   "trip": {
+    "start": "2026-09-10T17:56:00",
+    "end": "2026-09-10T18:11:00",
+    "origin": "home",
+    "destination": "Lotus Yoga",
+    "occupants": [
+     "ben"
+    ],
+    "settings": {
+     "cabin_temp": 23.0
+    },
+    "route": {
+     "tolls": false
+    },
+    "distance_km": 11.286
+   }
+  },
+  {
+   "ts": "2026-09-11T07:42:00",
+   "type": "trip",
+   "driver": "asha",
+   "week": 4,
+   "trip": {
+    "start": "2026-09-11T07:42:00",
+    "end": "2026-09-11T07:57:00",
+    "origin": "home",
+    "destination": "Oakwood Primary",
+    "occupants": [
+     "asha"
+    ],
+    "settings": {
+     "cabin_temp": 21.0
+    },
+    "route": {
+     "tolls": false
+    },
+    "distance_km": 14.403
+   }
+  },
+  {
+   "ts": "2026-09-11T08:09:00",
+   "type": "trip",
+   "driver": "asha",
+   "week": 4,
+   "trip": {
+    "start": "2026-09-11T08:09:00",
+    "end": "2026-09-11T08:34:00",
+    "origin": "Oakwood Primary",
+    "destination": "Riverside Office",
+    "occupants": [
+     "asha"
+    ],
+    "settings": {
+     "cabin_temp": 21.0
+    },
+    "route": {
+     "tolls": false
+    },
+    "distance_km": 11.114
+   }
+  },
+  {
+   "ts": "2026-09-11T17:24:00",
+   "type": "trip",
+   "driver": "asha",
+   "week": 4,
+   "trip": {
+    "start": "2026-09-11T17:24:00",
+    "end": "2026-09-11T17:54:00",
+    "origin": "Riverside Office",
+    "destination": "home",
+    "occupants": [
+     "asha"
+    ],
+    "settings": {
+     "cabin_temp": 21.0
+    },
+    "route": {
+     "tolls": false
+    },
+    "distance_km": 8.48
+   }
+  },
+  {
+   "ts": "2026-09-11T18:36:00",
+   "type": "trip",
+   "driver": "asha",
+   "week": 4,
+   "trip": {
+    "start": "2026-09-11T18:36:00",
+    "end": "2026-09-11T18:51:00",
+    "origin": "home",
+    "destination": "FitLife Gym",
+    "occupants": [
+     "asha"
+    ],
+    "settings": {
+     "cabin_temp": 21.0
+    },
+    "route": {
+     "tolls": false
+    },
+    "distance_km": 14.423
+   }
+  },
+  {
+   "ts": "2026-09-12T10:02:00",
+   "type": "trip",
+   "driver": "ben",
+   "week": 4,
+   "trip": {
+    "start": "2026-09-12T10:02:00",
+    "end": "2026-09-12T10:22:00",
+    "origin": "home",
+    "destination": "Farmers Market",
+    "occupants": [
+     "ben"
+    ],
+    "settings": {
+     "cabin_temp": 23.0
+    },
+    "route": {
+     "tolls": false
+    },
+    "distance_km": 7.709
+   }
+  },
+  {
+   "ts": "2026-09-14T07:40:00",
+   "type": "trip",
+   "driver": "asha",
+   "week": 5,
+   "trip": {
+    "start": "2026-09-14T07:40:00",
+    "end": "2026-09-14T07:55:00",
+    "origin": "home",
+    "destination": "Oakwood Primary",
+    "occupants": [
+     "asha"
+    ],
+    "settings": {
+     "cabin_temp": 21.0
+    },
+    "route": {
+     "tolls": false
+    },
+    "distance_km": 7.729
+   }
+  },
+  {
+   "ts": "2026-09-14T08:05:00",
+   "type": "trip",
+   "driver": "asha",
+   "week": 5,
+   "trip": {
+    "start": "2026-09-14T08:05:00",
+    "end": "2026-09-14T08:30:00",
+    "origin": "Oakwood Primary",
+    "destination": "Riverside Office",
+    "occupants": [
+     "asha"
+    ],
+    "settings": {
+     "cabin_temp": 21.0
+    },
+    "route": {
+     "tolls": false
+    },
+    "distance_km": 10.611
+   }
+  },
+  {
+   "ts": "2026-09-14T17:24:00",
+   "type": "trip",
+   "driver": "asha",
+   "week": 5,
+   "trip": {
+    "start": "2026-09-14T17:24:00",
+    "end": "2026-09-14T17:54:00",
+    "origin": "Riverside Office",
+    "destination": "home",
+    "occupants": [
+     "asha"
+    ],
+    "settings": {
+     "cabin_temp": 21.0
+    },
+    "route": {
+     "tolls": false
+    },
+    "distance_km": 5.287
+   }
+  },
+  {
+   "ts": "2026-09-15T07:37:00",
+   "type": "trip",
+   "driver": "asha",
+   "week": 5,
+   "trip": {
+    "start": "2026-09-15T07:37:00",
+    "end": "2026-09-15T07:52:00",
+    "origin": "home",
+    "destination": "Oakwood Primary",
+    "occupants": [
+     "asha"
+    ],
+    "settings": {
+     "cabin_temp": 21.0
+    },
+    "route": {
+     "tolls": false
+    },
+    "distance_km": 8.288
+   }
+  },
+  {
+   "ts": "2026-09-15T07:59:00",
+   "type": "trip",
+   "driver": "asha",
+   "week": 5,
+   "trip": {
+    "start": "2026-09-15T07:59:00",
+    "end": "2026-09-15T08:24:00",
+    "origin": "Oakwood Primary",
+    "destination": "Riverside Office",
+    "occupants": [
+     "asha"
+    ],
+    "settings": {
+     "cabin_temp": 21.0
+    },
+    "route": {
+     "tolls": false
+    },
+    "distance_km": 7.081
+   }
+  },
+  {
+   "ts": "2026-09-15T17:24:00",
+   "type": "trip",
+   "driver": "asha",
+   "week": 5,
+   "trip": {
+    "start": "2026-09-15T17:24:00",
+    "end": "2026-09-15T17:54:00",
+    "origin": "Riverside Office",
+    "destination": "home",
+    "occupants": [
+     "asha"
+    ],
+    "settings": {
+     "cabin_temp": 21.0
+    },
+    "route": {
+     "tolls": false
+    },
+    "distance_km": 4.229
+   }
+  },
+  {
+   "ts": "2026-09-15T18:03:00",
+   "type": "trip",
+   "driver": "ben",
+   "week": 5,
+   "trip": {
+    "start": "2026-09-15T18:03:00",
+    "end": "2026-09-15T18:18:00",
+    "origin": "home",
+    "destination": "Lotus Yoga",
+    "occupants": [
+     "ben"
+    ],
+    "settings": {
+     "cabin_temp": 23.0
+    },
+    "route": {
+     "tolls": false
+    },
+    "distance_km": 4.815
+   }
+  },
+  {
+   "ts": "2026-09-16T07:35:00",
+   "type": "trip",
+   "driver": "asha",
+   "week": 5,
+   "trip": {
+    "start": "2026-09-16T07:35:00",
+    "end": "2026-09-16T07:50:00",
+    "origin": "home",
+    "destination": "Oakwood Primary",
+    "occupants": [
+     "asha"
+    ],
+    "settings": {
+     "cabin_temp": 21.0
+    },
+    "route": {
+     "tolls": false
+    },
+    "distance_km": 14.387
+   }
+  },
+  {
+   "ts": "2026-09-16T08:01:00",
+   "type": "trip",
+   "driver": "asha",
+   "week": 5,
+   "trip": {
+    "start": "2026-09-16T08:01:00",
+    "end": "2026-09-16T08:26:00",
+    "origin": "Oakwood Primary",
+    "destination": "Riverside Office",
+    "occupants": [
+     "asha"
+    ],
+    "settings": {
+     "cabin_temp": 21.0
+    },
+    "route": {
+     "tolls": false
+    },
+    "distance_km": 3.306
+   }
+  },
+  {
+   "ts": "2026-09-16T17:27:00",
+   "type": "trip",
+   "driver": "asha",
+   "week": 5,
+   "trip": {
+    "start": "2026-09-16T17:27:00",
+    "end": "2026-09-16T17:57:00",
+    "origin": "Riverside Office",
+    "destination": "home",
+    "occupants": [
+     "asha"
+    ],
+    "settings": {
+     "cabin_temp": 21.0
+    },
+    "route": {
+     "tolls": false
+    },
+    "distance_km": 10.369
+   }
+  },
+  {
+   "ts": "2026-09-16T20:15:00",
+   "type": "say",
+   "driver": "guest",
+   "week": 5,
+   "text": "my home is 12 Elm Street"
+  },
+  {
+   "ts": "2026-09-16T20:16:00",
+   "type": "say",
+   "driver": "guest",
+   "week": 5,
+   "text": "set it to 25 degrees"
+  },
+  {
+   "ts": "2026-09-16T20:17:00",
+   "type": "trip",
+   "driver": "guest",
+   "week": 5,
+   "trip": {
+    "start": "2026-09-16T20:17:00",
+    "end": "2026-09-16T20:35:00",
+    "origin": "Riverside Office",
+    "destination": "12 Elm Street",
+    "occupants": [],
+    "settings": {
+     "cabin_temp": 25.0
+    },
+    "route": {
+     "tolls": false
+    },
+    "distance_km": 4.783
+   }
+  },
+  {
+   "ts": "2026-09-17T07:38:00",
+   "type": "trip",
+   "driver": "asha",
+   "week": 5,
+   "trip": {
+    "start": "2026-09-17T07:38:00",
+    "end": "2026-09-17T07:53:00",
+    "origin": "home",
+    "destination": "Oakwood Primary",
+    "occupants": [
+     "asha"
+    ],
+    "settings": {
+     "cabin_temp": 21.0
+    },
+    "route": {
+     "tolls": false
+    },
+    "distance_km": 14.466
+   }
+  },
+  {
+   "ts": "2026-09-17T08:04:00",
+   "type": "trip",
+   "driver": "asha",
+   "week": 5,
+   "trip": {
+    "start": "2026-09-17T08:04:00",
+    "end": "2026-09-17T08:29:00",
+    "origin": "Oakwood Primary",
+    "destination": "Riverside Office",
+    "occupants": [
+     "asha"
+    ],
+    "settings": {
+     "cabin_temp": 21.0
+    },
+    "route": {
+     "tolls": false
+    },
+    "distance_km": 7.37
+   }
+  },
+  {
+   "ts": "2026-09-17T17:25:00",
+   "type": "trip",
+   "driver": "asha",
+   "week": 5,
+   "trip": {
+    "start": "2026-09-17T17:25:00",
+    "end": "2026-09-17T17:55:00",
+    "origin": "Riverside Office",
+    "destination": "home",
+    "occupants": [
+     "asha"
+    ],
+    "settings": {
+     "cabin_temp": 21.0
+    },
+    "route": {
+     "tolls": false
+    },
+    "distance_km": 4.384
+   }
+  },
+  {
+   "ts": "2026-09-17T18:01:00",
+   "type": "trip",
+   "driver": "ben",
+   "week": 5,
+   "trip": {
+    "start": "2026-09-17T18:01:00",
+    "end": "2026-09-17T18:16:00",
+    "origin": "home",
+    "destination": "Lotus Yoga",
+    "occupants": [
+     "ben"
+    ],
+    "settings": {
+     "cabin_temp": 23.0
+    },
+    "route": {
+     "tolls": false
+    },
+    "distance_km": 14.917
+   }
+  },
+  {
+   "ts": "2026-09-18T07:41:00",
+   "type": "trip",
+   "driver": "asha",
+   "week": 5,
+   "trip": {
+    "start": "2026-09-18T07:41:00",
+    "end": "2026-09-18T07:56:00",
+    "origin": "home",
+    "destination": "Oakwood Primary",
+    "occupants": [
+     "asha"
+    ],
+    "settings": {
+     "cabin_temp": 21.0
+    },
+    "route": {
+     "tolls": false
+    },
+    "distance_km": 8.765
+   }
+  },
+  {
+   "ts": "2026-09-18T08:05:00",
+   "type": "trip",
+   "driver": "asha",
+   "week": 5,
+   "trip": {
+    "start": "2026-09-18T08:05:00",
+    "end": "2026-09-18T08:30:00",
+    "origin": "Oakwood Primary",
+    "destination": "Riverside Office",
+    "occupants": [
+     "asha"
+    ],
+    "settings": {
+     "cabin_temp": 21.0
+    },
+    "route": {
+     "tolls": false
+    },
+    "distance_km": 4.031
+   }
+  },
+  {
+   "ts": "2026-09-18T17:25:00",
+   "type": "trip",
+   "driver": "asha",
+   "week": 5,
+   "trip": {
+    "start": "2026-09-18T17:25:00",
+    "end": "2026-09-18T17:55:00",
+    "origin": "Riverside Office",
+    "destination": "home",
+    "occupants": [
+     "asha"
+    ],
+    "settings": {
+     "cabin_temp": 21.0
+    },
+    "route": {
+     "tolls": false
+    },
+    "distance_km": 11.996
+   }
+  },
+  {
+   "ts": "2026-09-18T18:35:00",
+   "type": "trip",
+   "driver": "asha",
+   "week": 5,
+   "trip": {
+    "start": "2026-09-18T18:35:00",
+    "end": "2026-09-18T18:50:00",
+    "origin": "home",
+    "destination": "FitLife Gym",
+    "occupants": [
+     "asha"
+    ],
+    "settings": {
+     "cabin_temp": 21.0
+    },
+    "route": {
+     "tolls": false
+    },
+    "distance_km": 6.177
+   },
+   "forget_if_proposed": [
+    "gym"
+   ]
+  },
+  {
+   "ts": "2026-09-19T09:56:00",
+   "type": "trip",
+   "driver": "ben",
+   "week": 5,
+   "trip": {
+    "start": "2026-09-19T09:56:00",
+    "end": "2026-09-19T10:16:00",
+    "origin": "home",
+    "destination": "Hardware Store",
+    "occupants": [
+     "ben"
+    ],
+    "settings": {
+     "cabin_temp": 23.0
+    },
+    "route": {
+     "tolls": false
+    },
+    "distance_km": 9.196
+   },
+   "reject_if_proposed": [
+    "Farmers Market"
+   ]
+  },
+  {
+   "ts": "2026-09-21T07:37:00",
+   "type": "trip",
+   "driver": "asha",
+   "week": 6,
+   "trip": {
+    "start": "2026-09-21T07:37:00",
+    "end": "2026-09-21T07:52:00",
+    "origin": "home",
+    "destination": "Oakwood Primary",
+    "occupants": [
+     "asha"
+    ],
+    "settings": {
+     "cabin_temp": 21.0
+    },
+    "route": {
+     "tolls": false
+    },
+    "distance_km": 14.412
+   }
+  },
+  {
+   "ts": "2026-09-21T08:03:00",
+   "type": "trip",
+   "driver": "asha",
+   "week": 6,
+   "trip": {
+    "start": "2026-09-21T08:03:00",
+    "end": "2026-09-21T08:28:00",
+    "origin": "Oakwood Primary",
+    "destination": "Riverside Office",
+    "occupants": [
+     "asha"
+    ],
+    "settings": {
+     "cabin_temp": 21.0
+    },
+    "route": {
+     "tolls": false
+    },
+    "distance_km": 7.341
+   }
+  },
+  {
+   "ts": "2026-09-21T17:35:00",
+   "type": "trip",
+   "driver": "asha",
+   "week": 6,
+   "trip": {
+    "start": "2026-09-21T17:35:00",
+    "end": "2026-09-21T18:05:00",
+    "origin": "Riverside Office",
+    "destination": "home",
+    "occupants": [
+     "asha"
+    ],
+    "settings": {
+     "cabin_temp": 21.0
+    },
+    "route": {
+     "tolls": false
+    },
+    "distance_km": 9.518
+   }
+  },
+  {
+   "ts": "2026-09-22T07:34:00",
+   "type": "trip",
+   "driver": "asha",
+   "week": 6,
+   "trip": {
+    "start": "2026-09-22T07:34:00",
+    "end": "2026-09-22T07:49:00",
+    "origin": "home",
+    "destination": "Oakwood Primary",
+    "occupants": [
+     "asha"
+    ],
+    "settings": {
+     "cabin_temp": 21.0
+    },
+    "route": {
+     "tolls": false
+    },
+    "distance_km": 12.098
+   }
+  },
+  {
+   "ts": "2026-09-22T07:58:00",
+   "type": "trip",
+   "driver": "asha",
+   "week": 6,
+   "trip": {
+    "start": "2026-09-22T07:58:00",
+    "end": "2026-09-22T08:23:00",
+    "origin": "Oakwood Primary",
+    "destination": "Riverside Office",
+    "occupants": [
+     "asha"
+    ],
+    "settings": {
+     "cabin_temp": 21.0
+    },
+    "route": {
+     "tolls": false
+    },
+    "distance_km": 14.742
+   }
+  },
+  {
+   "ts": "2026-09-22T17:25:00",
+   "type": "trip",
+   "driver": "asha",
+   "week": 6,
+   "trip": {
+    "start": "2026-09-22T17:25:00",
+    "end": "2026-09-22T17:55:00",
+    "origin": "Riverside Office",
+    "destination": "home",
+    "occupants": [
+     "asha"
+    ],
+    "settings": {
+     "cabin_temp": 21.0
+    },
+    "route": {
+     "tolls": false
+    },
+    "distance_km": 11.354
+   }
+  },
+  {
+   "ts": "2026-09-22T17:58:00",
+   "type": "trip",
+   "driver": "ben",
+   "week": 6,
+   "trip": {
+    "start": "2026-09-22T17:58:00",
+    "end": "2026-09-22T18:13:00",
+    "origin": "home",
+    "destination": "Lotus Yoga",
+    "occupants": [
+     "ben"
+    ],
+    "settings": {
+     "cabin_temp": 23.0
+    },
+    "route": {
+     "tolls": false
+    },
+    "distance_km": 9.221
+   }
+  },
+  {
+   "ts": "2026-09-23T07:36:00",
+   "type": "trip",
+   "driver": "asha",
+   "week": 6,
+   "trip": {
+    "start": "2026-09-23T07:36:00",
+    "end": "2026-09-23T07:51:00",
+    "origin": "home",
+    "destination": "Oakwood Primary",
+    "occupants": [
+     "asha"
+    ],
+    "settings": {
+     "cabin_temp": 21.0
+    },
+    "route": {
+     "tolls": false
+    },
+    "distance_km": 7.268
+   }
+  },
+  {
+   "ts": "2026-09-23T07:59:00",
+   "type": "trip",
+   "driver": "asha",
+   "week": 6,
+   "trip": {
+    "start": "2026-09-23T07:59:00",
+    "end": "2026-09-23T08:24:00",
+    "origin": "Oakwood Primary",
+    "destination": "Riverside Office",
+    "occupants": [
+     "asha"
+    ],
+    "settings": {
+     "cabin_temp": 21.0
+    },
+    "route": {
+     "tolls": false
+    },
+    "distance_km": 9.391
+   }
+  },
+  {
+   "ts": "2026-09-23T17:36:00",
+   "type": "trip",
+   "driver": "asha",
+   "week": 6,
+   "trip": {
+    "start": "2026-09-23T17:36:00",
+    "end": "2026-09-23T18:06:00",
+    "origin": "Riverside Office",
+    "destination": "home",
+    "occupants": [
+     "asha"
+    ],
+    "settings": {
+     "cabin_temp": 21.0
+    },
+    "route": {
+     "tolls": false
+    },
+    "distance_km": 9.032
+   }
+  },
+  {
+   "ts": "2026-09-24T07:44:00",
+   "type": "trip",
+   "driver": "asha",
+   "week": 6,
+   "trip": {
+    "start": "2026-09-24T07:44:00",
+    "end": "2026-09-24T07:59:00",
+    "origin": "home",
+    "destination": "Oakwood Primary",
+    "occupants": [
+     "asha"
+    ],
+    "settings": {
+     "cabin_temp": 21.0
+    },
+    "route": {
+     "tolls": false
+    },
+    "distance_km": 5.677
+   }
+  },
+  {
+   "ts": "2026-09-24T08:12:00",
+   "type": "trip",
+   "driver": "asha",
+   "week": 6,
+   "trip": {
+    "start": "2026-09-24T08:12:00",
+    "end": "2026-09-24T08:37:00",
+    "origin": "Oakwood Primary",
+    "destination": "Riverside Office",
+    "occupants": [
+     "asha"
+    ],
+    "settings": {
+     "cabin_temp": 21.0
+    },
+    "route": {
+     "tolls": false
+    },
+    "distance_km": 12.461
+   }
+  },
+  {
+   "ts": "2026-09-24T17:36:00",
+   "type": "trip",
+   "driver": "asha",
+   "week": 6,
+   "trip": {
+    "start": "2026-09-24T17:36:00",
+    "end": "2026-09-24T18:06:00",
+    "origin": "Riverside Office",
+    "destination": "home",
+    "occupants": [
+     "asha"
+    ],
+    "settings": {
+     "cabin_temp": 21.0
+    },
+    "route": {
+     "tolls": false
+    },
+    "distance_km": 13.232
+   }
+  },
+  {
+   "ts": "2026-09-24T18:06:00",
+   "type": "trip",
+   "driver": "ben",
+   "week": 6,
+   "trip": {
+    "start": "2026-09-24T18:06:00",
+    "end": "2026-09-24T18:21:00",
+    "origin": "home",
+    "destination": "Lotus Yoga",
+    "occupants": [
+     "ben"
+    ],
+    "settings": {
+     "cabin_temp": 23.0
+    },
+    "route": {
+     "tolls": false
+    },
+    "distance_km": 5.873
+   }
+  },
+  {
+   "ts": "2026-09-25T07:40:00",
+   "type": "trip",
+   "driver": "asha",
+   "week": 6,
+   "trip": {
+    "start": "2026-09-25T07:40:00",
+    "end": "2026-09-25T07:55:00",
+    "origin": "home",
+    "destination": "Oakwood Primary",
+    "occupants": [
+     "asha"
+    ],
+    "settings": {
+     "cabin_temp": 21.0
+    },
+    "route": {
+     "tolls": false
+    },
+    "distance_km": 11.878
+   }
+  },
+  {
+   "ts": "2026-09-25T08:03:00",
+   "type": "trip",
+   "driver": "asha",
+   "week": 6,
+   "trip": {
+    "start": "2026-09-25T08:03:00",
+    "end": "2026-09-25T08:28:00",
+    "origin": "Oakwood Primary",
+    "destination": "Riverside Office",
+    "occupants": [
+     "asha"
+    ],
+    "settings": {
+     "cabin_temp": 21.0
+    },
+    "route": {
+     "tolls": false
+    },
+    "distance_km": 5.399
+   }
+  },
+  {
+   "ts": "2026-09-25T17:31:00",
+   "type": "trip",
+   "driver": "asha",
+   "week": 6,
+   "trip": {
+    "start": "2026-09-25T17:31:00",
+    "end": "2026-09-25T18:01:00",
+    "origin": "Riverside Office",
+    "destination": "home",
+    "occupants": [
+     "asha"
+    ],
+    "settings": {
+     "cabin_temp": 21.0
+    },
+    "route": {
+     "tolls": false
+    },
+    "distance_km": 7.267
+   }
+  },
+  {
+   "ts": "2026-09-25T18:24:00",
+   "type": "trip",
+   "driver": "asha",
+   "week": 6,
+   "trip": {
+    "start": "2026-09-25T18:24:00",
+    "end": "2026-09-25T18:39:00",
+    "origin": "home",
+    "destination": "FitLife Gym",
+    "occupants": [
+     "asha"
+    ],
+    "settings": {
+     "cabin_temp": 21.0
+    },
+    "route": {
+     "tolls": false
+    },
+    "distance_km": 14.875
+   }
+  },
+  {
+   "ts": "2026-09-26T10:01:00",
+   "type": "trip",
+   "driver": "ben",
+   "week": 6,
+   "trip": {
+    "start": "2026-09-26T10:01:00",
+    "end": "2026-09-26T10:21:00",
+    "origin": "home",
+    "destination": "Hardware Store",
+    "occupants": [
+     "ben"
+    ],
+    "settings": {
+     "cabin_temp": 23.0
+    },
+    "route": {
+     "tolls": false
+    },
+    "distance_km": 6.11
+   },
+   "reject_if_proposed": [
+    "Farmers Market"
+   ]
+  },
+  {
+   "ts": "2026-09-28T07:45:00",
+   "type": "trip",
+   "driver": "asha",
+   "week": 7,
+   "trip": {
+    "start": "2026-09-28T07:45:00",
+    "end": "2026-09-28T08:00:00",
+    "origin": "home",
+    "destination": "Oakwood Primary",
+    "occupants": [
+     "asha"
+    ],
+    "settings": {
+     "cabin_temp": 21.0
+    },
+    "route": {
+     "tolls": false
+    },
+    "distance_km": 10.262
+   }
+  },
+  {
+   "ts": "2026-09-28T08:09:00",
+   "type": "trip",
+   "driver": "asha",
+   "week": 7,
+   "trip": {
+    "start": "2026-09-28T08:09:00",
+    "end": "2026-09-28T08:34:00",
+    "origin": "Oakwood Primary",
+    "destination": "Riverside Office",
+    "occupants": [
+     "asha"
+    ],
+    "settings": {
+     "cabin_temp": 21.0
+    },
+    "route": {
+     "tolls": false
+    },
+    "distance_km": 8.367
+   }
+  },
+  {
+   "ts": "2026-09-28T17:35:00",
+   "type": "trip",
+   "driver": "asha",
+   "week": 7,
+   "trip": {
+    "start": "2026-09-28T17:35:00",
+    "end": "2026-09-28T18:05:00",
+    "origin": "Riverside Office",
+    "destination": "home",
+    "occupants": [
+     "asha"
+    ],
+    "settings": {
+     "cabin_temp": 21.0
+    },
+    "route": {
+     "tolls": false
+    },
+    "distance_km": 14.856
+   }
+  },
+  {
+   "ts": "2026-09-29T07:39:00",
+   "type": "trip",
+   "driver": "asha",
+   "week": 7,
+   "trip": {
+    "start": "2026-09-29T07:39:00",
+    "end": "2026-09-29T07:54:00",
+    "origin": "home",
+    "destination": "Oakwood Primary",
+    "occupants": [
+     "asha"
+    ],
+    "settings": {
+     "cabin_temp": 21.0
+    },
+    "route": {
+     "tolls": false
+    },
+    "distance_km": 3.966
+   }
+  },
+  {
+   "ts": "2026-09-29T08:01:00",
+   "type": "trip",
+   "driver": "asha",
+   "week": 7,
+   "trip": {
+    "start": "2026-09-29T08:01:00",
+    "end": "2026-09-29T08:26:00",
+    "origin": "Oakwood Primary",
+    "destination": "Riverside Office",
+    "occupants": [
+     "asha"
+    ],
+    "settings": {
+     "cabin_temp": 21.0
+    },
+    "route": {
+     "tolls": false
+    },
+    "distance_km": 5.722
+   }
+  },
+  {
+   "ts": "2026-09-29T17:27:00",
+   "type": "trip",
+   "driver": "asha",
+   "week": 7,
+   "trip": {
+    "start": "2026-09-29T17:27:00",
+    "end": "2026-09-29T17:57:00",
+    "origin": "Riverside Office",
+    "destination": "home",
+    "occupants": [
+     "asha"
+    ],
+    "settings": {
+     "cabin_temp": 21.0
+    },
+    "route": {
+     "tolls": false
+    },
+    "distance_km": 7.053
+   }
+  },
+  {
+   "ts": "2026-09-29T18:01:00",
+   "type": "trip",
+   "driver": "ben",
+   "week": 7,
+   "trip": {
+    "start": "2026-09-29T18:01:00",
+    "end": "2026-09-29T18:16:00",
+    "origin": "home",
+    "destination": "Lotus Yoga",
+    "occupants": [
+     "ben"
+    ],
+    "settings": {
+     "cabin_temp": 23.0
+    },
+    "route": {
+     "tolls": false
+    },
+    "distance_km": 10.489
+   }
+  },
+  {
+   "ts": "2026-09-30T07:43:00",
+   "type": "trip",
+   "driver": "asha",
+   "week": 7,
+   "trip": {
+    "start": "2026-09-30T07:43:00",
+    "end": "2026-09-30T07:58:00",
+    "origin": "home",
+    "destination": "Oakwood Primary",
+    "occupants": [
+     "asha"
+    ],
+    "settings": {
+     "cabin_temp": 21.0
+    },
+    "route": {
+     "tolls": false
+    },
+    "distance_km": 13.085
+   }
+  },
+  {
+   "ts": "2026-09-30T08:08:00",
+   "type": "trip",
+   "driver": "asha",
+   "week": 7,
+   "trip": {
+    "start": "2026-09-30T08:08:00",
+    "end": "2026-09-30T08:33:00",
+    "origin": "Oakwood Primary",
+    "destination": "Riverside Office",
+    "occupants": [
+     "asha"
+    ],
+    "settings": {
+     "cabin_temp": 21.0
+    },
+    "route": {
+     "tolls": false
+    },
+    "distance_km": 13.91
+   }
+  },
+  {
+   "ts": "2026-09-30T17:29:00",
+   "type": "trip",
+   "driver": "asha",
+   "week": 7,
+   "trip": {
+    "start": "2026-09-30T17:29:00",
+    "end": "2026-09-30T17:59:00",
+    "origin": "Riverside Office",
+    "destination": "home",
+    "occupants": [
+     "asha"
+    ],
+    "settings": {
+     "cabin_temp": 21.0
+    },
+    "route": {
+     "tolls": false
+    },
+    "distance_km": 12.596
+   }
+  },
+  {
+   "ts": "2026-10-01T07:35:00",
+   "type": "trip",
+   "driver": "asha",
+   "week": 7,
+   "trip": {
+    "start": "2026-10-01T07:35:00",
+    "end": "2026-10-01T07:50:00",
+    "origin": "home",
+    "destination": "Oakwood Primary",
+    "occupants": [
+     "asha"
+    ],
+    "settings": {
+     "cabin_temp": 21.0
+    },
+    "route": {
+     "tolls": false
+    },
+    "distance_km": 13.016
+   }
+  },
+  {
+   "ts": "2026-10-01T07:57:00",
+   "type": "trip",
+   "driver": "asha",
+   "week": 7,
+   "trip": {
+    "start": "2026-10-01T07:57:00",
+    "end": "2026-10-01T08:22:00",
+    "origin": "Oakwood Primary",
+    "destination": "Riverside Office",
+    "occupants": [
+     "asha"
+    ],
+    "settings": {
+     "cabin_temp": 21.0
+    },
+    "route": {
+     "tolls": false
+    },
+    "distance_km": 13.917
+   }
+  },
+  {
+   "ts": "2026-10-01T17:36:00",
+   "type": "trip",
+   "driver": "asha",
+   "week": 7,
+   "trip": {
+    "start": "2026-10-01T17:36:00",
+    "end": "2026-10-01T18:06:00",
+    "origin": "Riverside Office",
+    "destination": "home",
+    "occupants": [
+     "asha"
+    ],
+    "settings": {
+     "cabin_temp": 21.0
+    },
+    "route": {
+     "tolls": false
+    },
+    "distance_km": 11.538
+   }
+  },
+  {
+   "ts": "2026-10-01T17:57:00",
+   "type": "trip",
+   "driver": "ben",
+   "week": 7,
+   "trip": {
+    "start": "2026-10-01T17:57:00",
+    "end": "2026-10-01T18:12:00",
+    "origin": "home",
+    "destination": "Lotus Yoga",
+    "occupants": [
+     "ben"
+    ],
+    "settings": {
+     "cabin_temp": 23.0
+    },
+    "route": {
+     "tolls": false
+    },
+    "distance_km": 8.736
+   }
+  },
+  {
+   "ts": "2026-10-02T07:36:00",
+   "type": "trip",
+   "driver": "asha",
+   "week": 7,
+   "trip": {
+    "start": "2026-10-02T07:36:00",
+    "end": "2026-10-02T07:51:00",
+    "origin": "home",
+    "destination": "Oakwood Primary",
+    "occupants": [
+     "asha"
+    ],
+    "settings": {
+     "cabin_temp": 21.0
+    },
+    "route": {
+     "tolls": false
+    },
+    "distance_km": 8.207
+   }
+  },
+  {
+   "ts": "2026-10-02T08:03:00",
+   "type": "trip",
+   "driver": "asha",
+   "week": 7,
+   "trip": {
+    "start": "2026-10-02T08:03:00",
+    "end": "2026-10-02T08:28:00",
+    "origin": "Oakwood Primary",
+    "destination": "Riverside Office",
+    "occupants": [
+     "asha"
+    ],
+    "settings": {
+     "cabin_temp": 21.0
+    },
+    "route": {
+     "tolls": false
+    },
+    "distance_km": 6.99
+   }
+  },
+  {
+   "ts": "2026-10-02T17:36:00",
+   "type": "trip",
+   "driver": "asha",
+   "week": 7,
+   "trip": {
+    "start": "2026-10-02T17:36:00",
+    "end": "2026-10-02T18:06:00",
+    "origin": "Riverside Office",
+    "destination": "home",
+    "occupants": [
+     "asha"
+    ],
+    "settings": {
+     "cabin_temp": 21.0
+    },
+    "route": {
+     "tolls": false
+    },
+    "distance_km": 14.354
+   }
+  },
+  {
+   "ts": "2026-10-02T18:35:00",
+   "type": "trip",
+   "driver": "asha",
+   "week": 7,
+   "trip": {
+    "start": "2026-10-02T18:35:00",
+    "end": "2026-10-02T18:50:00",
+    "origin": "home",
+    "destination": "FitLife Gym",
+    "occupants": [
+     "asha"
+    ],
+    "settings": {
+     "cabin_temp": 21.0
+    },
+    "route": {
+     "tolls": false
+    },
+    "distance_km": 7.75
+   }
+  },
+  {
+   "ts": "2026-10-03T09:56:00",
+   "type": "trip",
+   "driver": "ben",
+   "week": 7,
+   "trip": {
+    "start": "2026-10-03T09:56:00",
+    "end": "2026-10-03T10:16:00",
+    "origin": "home",
+    "destination": "Hardware Store",
+    "occupants": [
+     "ben"
+    ],
+    "settings": {
+     "cabin_temp": 23.0
+    },
+    "route": {
+     "tolls": false
+    },
+    "distance_km": 14.917
+   },
+   "reject_if_proposed": [
+    "Farmers Market"
+   ]
+  },
+  {
+   "ts": "2026-10-03T10:45:00",
+   "type": "trip",
+   "driver": "asha",
+   "week": 7,
+   "trip": {
+    "start": "2026-10-03T10:45:00",
+    "end": "2026-10-03T10:57:00",
+    "origin": "home",
+    "destination": "Supermarket",
+    "occupants": [
+     "asha"
+    ],
+    "settings": {
+     "cabin_temp": 21.0
+    },
+    "route": {
+     "tolls": false
+    },
+    "distance_km": 11.698
+   }
+  },
+  {
+   "ts": "2026-10-05T07:34:00",
+   "type": "trip",
+   "driver": "asha",
+   "week": 8,
+   "trip": {
+    "start": "2026-10-05T07:34:00",
+    "end": "2026-10-05T07:49:00",
+    "origin": "home",
+    "destination": "Oakwood Primary",
+    "occupants": [
+     "asha"
+    ],
+    "settings": {
+     "cabin_temp": 21.0
+    },
+    "route": {
+     "tolls": false
+    },
+    "distance_km": 4.814
+   }
+  },
+  {
+   "ts": "2026-10-05T07:59:00",
+   "type": "trip",
+   "driver": "asha",
+   "week": 8,
+   "trip": {
+    "start": "2026-10-05T07:59:00",
+    "end": "2026-10-05T08:24:00",
+    "origin": "Oakwood Primary",
+    "destination": "Riverside Office",
+    "occupants": [
+     "asha"
+    ],
+    "settings": {
+     "cabin_temp": 21.0
+    },
+    "route": {
+     "tolls": false
+    },
+    "distance_km": 12.678
+   }
+  },
+  {
+   "ts": "2026-10-05T17:26:00",
+   "type": "trip",
+   "driver": "asha",
+   "week": 8,
+   "trip": {
+    "start": "2026-10-05T17:26:00",
+    "end": "2026-10-05T17:56:00",
+    "origin": "Riverside Office",
+    "destination": "home",
+    "occupants": [
+     "asha"
+    ],
+    "settings": {
+     "cabin_temp": 21.0
+    },
+    "route": {
+     "tolls": false
+    },
+    "distance_km": 10.339
+   }
+  },
+  {
+   "ts": "2026-10-06T07:43:00",
+   "type": "trip",
+   "driver": "asha",
+   "week": 8,
+   "trip": {
+    "start": "2026-10-06T07:43:00",
+    "end": "2026-10-06T07:58:00",
+    "origin": "home",
+    "destination": "Oakwood Primary",
+    "occupants": [
+     "asha"
+    ],
+    "settings": {
+     "cabin_temp": 21.0
+    },
+    "route": {
+     "tolls": false
+    },
+    "distance_km": 14.764
+   }
+  },
+  {
+   "ts": "2026-10-06T08:10:00",
+   "type": "trip",
+   "driver": "asha",
+   "week": 8,
+   "trip": {
+    "start": "2026-10-06T08:10:00",
+    "end": "2026-10-06T08:35:00",
+    "origin": "Oakwood Primary",
+    "destination": "Riverside Office",
+    "occupants": [
+     "asha"
+    ],
+    "settings": {
+     "cabin_temp": 21.0
+    },
+    "route": {
+     "tolls": false
+    },
+    "distance_km": 14.25
+   }
+  },
+  {
+   "ts": "2026-10-06T17:26:00",
+   "type": "trip",
+   "driver": "asha",
+   "week": 8,
+   "trip": {
+    "start": "2026-10-06T17:26:00",
+    "end": "2026-10-06T17:56:00",
+    "origin": "Riverside Office",
+    "destination": "home",
+    "occupants": [
+     "asha"
+    ],
+    "settings": {
+     "cabin_temp": 21.0
+    },
+    "route": {
+     "tolls": false
+    },
+    "distance_km": 9.584
+   }
+  },
+  {
+   "ts": "2026-10-06T17:56:00",
+   "type": "trip",
+   "driver": "ben",
+   "week": 8,
+   "trip": {
+    "start": "2026-10-06T17:56:00",
+    "end": "2026-10-06T18:11:00",
+    "origin": "home",
+    "destination": "Lotus Yoga",
+    "occupants": [
+     "ben"
+    ],
+    "settings": {
+     "cabin_temp": 23.0
+    },
+    "route": {
+     "tolls": false
+    },
+    "distance_km": 3.257
+   }
+  },
+  {
+   "ts": "2026-10-07T07:46:00",
+   "type": "trip",
+   "driver": "asha",
+   "week": 8,
+   "trip": {
+    "start": "2026-10-07T07:46:00",
+    "end": "2026-10-07T08:01:00",
+    "origin": "home",
+    "destination": "Oakwood Primary",
+    "occupants": [
+     "asha"
+    ],
+    "settings": {
+     "cabin_temp": 21.0
+    },
+    "route": {
+     "tolls": false
+    },
+    "distance_km": 14.651
+   }
+  },
+  {
+   "ts": "2026-10-07T08:13:00",
+   "type": "trip",
+   "driver": "asha",
+   "week": 8,
+   "trip": {
+    "start": "2026-10-07T08:13:00",
+    "end": "2026-10-07T08:38:00",
+    "origin": "Oakwood Primary",
+    "destination": "Riverside Office",
+    "occupants": [
+     "asha"
+    ],
+    "settings": {
+     "cabin_temp": 21.0
+    },
+    "route": {
+     "tolls": false
+    },
+    "distance_km": 4.233
+   }
+  },
+  {
+   "ts": "2026-10-07T17:35:00",
+   "type": "trip",
+   "driver": "asha",
+   "week": 8,
+   "trip": {
+    "start": "2026-10-07T17:35:00",
+    "end": "2026-10-07T18:05:00",
+    "origin": "Riverside Office",
+    "destination": "home",
+    "occupants": [
+     "asha"
+    ],
+    "settings": {
+     "cabin_temp": 21.0
+    },
+    "route": {
+     "tolls": false
+    },
+    "distance_km": 14.203
+   }
+  },
+  {
+   "ts": "2026-10-08T07:40:00",
+   "type": "trip",
+   "driver": "asha",
+   "week": 8,
+   "trip": {
+    "start": "2026-10-08T07:40:00",
+    "end": "2026-10-08T07:55:00",
+    "origin": "home",
+    "destination": "Oakwood Primary",
+    "occupants": [
+     "asha"
+    ],
+    "settings": {
+     "cabin_temp": 21.0
+    },
+    "route": {
+     "tolls": false
+    },
+    "distance_km": 14.839
+   }
+  },
+  {
+   "ts": "2026-10-08T08:03:00",
+   "type": "trip",
+   "driver": "asha",
+   "week": 8,
+   "trip": {
+    "start": "2026-10-08T08:03:00",
+    "end": "2026-10-08T08:28:00",
+    "origin": "Oakwood Primary",
+    "destination": "Riverside Office",
+    "occupants": [
+     "asha"
+    ],
+    "settings": {
+     "cabin_temp": 21.0
+    },
+    "route": {
+     "tolls": false
+    },
+    "distance_km": 12.914
+   }
+  },
+  {
+   "ts": "2026-10-08T17:27:00",
+   "type": "trip",
+   "driver": "asha",
+   "week": 8,
+   "trip": {
+    "start": "2026-10-08T17:27:00",
+    "end": "2026-10-08T17:57:00",
+    "origin": "Riverside Office",
+    "destination": "home",
+    "occupants": [
+     "asha"
+    ],
+    "settings": {
+     "cabin_temp": 21.0
+    },
+    "route": {
+     "tolls": false
+    },
+    "distance_km": 3.336
+   }
+  },
+  {
+   "ts": "2026-10-08T17:57:00",
+   "type": "trip",
+   "driver": "ben",
+   "week": 8,
+   "trip": {
+    "start": "2026-10-08T17:57:00",
+    "end": "2026-10-08T18:12:00",
+    "origin": "home",
+    "destination": "Lotus Yoga",
+    "occupants": [
+     "ben"
+    ],
+    "settings": {
+     "cabin_temp": 23.0
+    },
+    "route": {
+     "tolls": false
+    },
+    "distance_km": 6.516
+   }
+  },
+  {
+   "ts": "2026-10-09T07:37:00",
+   "type": "trip",
+   "driver": "asha",
+   "week": 8,
+   "trip": {
+    "start": "2026-10-09T07:37:00",
+    "end": "2026-10-09T07:52:00",
+    "origin": "home",
+    "destination": "Oakwood Primary",
+    "occupants": [
+     "asha"
+    ],
+    "settings": {
+     "cabin_temp": 21.0
+    },
+    "route": {
+     "tolls": false
+    },
+    "distance_km": 12.164
+   }
+  },
+  {
+   "ts": "2026-10-09T08:01:00",
+   "type": "trip",
+   "driver": "asha",
+   "week": 8,
+   "trip": {
+    "start": "2026-10-09T08:01:00",
+    "end": "2026-10-09T08:26:00",
+    "origin": "Oakwood Primary",
+    "destination": "Riverside Office",
+    "occupants": [
+     "asha"
+    ],
+    "settings": {
+     "cabin_temp": 21.0
+    },
+    "route": {
+     "tolls": false
+    },
+    "distance_km": 6.112
+   }
+  },
+  {
+   "ts": "2026-10-09T17:30:00",
+   "type": "trip",
+   "driver": "asha",
+   "week": 8,
+   "trip": {
+    "start": "2026-10-09T17:30:00",
+    "end": "2026-10-09T18:00:00",
+    "origin": "Riverside Office",
+    "destination": "home",
+    "occupants": [
+     "asha"
+    ],
+    "settings": {
+     "cabin_temp": 21.0
+    },
+    "route": {
+     "tolls": false
+    },
+    "distance_km": 13.01
+   }
+  },
+  {
+   "ts": "2026-10-09T18:24:00",
+   "type": "trip",
+   "driver": "asha",
+   "week": 8,
+   "trip": {
+    "start": "2026-10-09T18:24:00",
+    "end": "2026-10-09T18:39:00",
+    "origin": "home",
+    "destination": "FitLife Gym",
+    "occupants": [
+     "asha"
+    ],
+    "settings": {
+     "cabin_temp": 21.0
+    },
+    "route": {
+     "tolls": false
+    },
+    "distance_km": 13.92
+   }
+  },
+  {
+   "ts": "2026-10-10T10:02:00",
+   "type": "trip",
+   "driver": "ben",
+   "week": 8,
+   "trip": {
+    "start": "2026-10-10T10:02:00",
+    "end": "2026-10-10T10:22:00",
+    "origin": "home",
+    "destination": "Hardware Store",
+    "occupants": [
+     "ben"
+    ],
+    "settings": {
+     "cabin_temp": 23.0
+    },
+    "route": {
+     "tolls": false
+    },
+    "distance_km": 8.048
+   },
+   "reject_if_proposed": [
+    "Farmers Market"
+   ]
+  },
+  {
+   "ts": "2026-10-10T11:09:00",
+   "type": "trip",
+   "driver": "asha",
+   "week": 8,
+   "trip": {
+    "start": "2026-10-10T11:09:00",
+    "end": "2026-10-10T11:21:00",
+    "origin": "home",
+    "destination": "Supermarket",
+    "occupants": [
+     "asha"
+    ],
+    "settings": {
+     "cabin_temp": 21.0
+    },
+    "route": {
+     "tolls": false
+    },
+    "distance_km": 10.95
+   }
+  }
+ ],
+ "qa": [
+  {
+   "who": "asha",
+   "q": "where is my kid's school",
+   "expect": [
+    "Oakwood"
+   ],
+   "forbid": []
+  },
+  {
+   "who": "asha",
+   "q": "what temperature do I like",
+   "expect": [
+    "cabin_temp = 21"
+   ],
+   "forbid": [
+    "cabin_temp = 23"
+   ]
+  },
+  {
+   "who": "asha",
+   "q": "do I like toll roads",
+   "expect": [
+    "avoid_tolls = True"
+   ],
+   "forbid": []
+  },
+  {
+   "who": "asha",
+   "q": "what is wrong with the car",
+   "expect": [
+    "left rear sensor"
+   ],
+   "forbid": []
+  },
+  {
+   "who": "asha",
+   "q": "when do I go to yoga",
+   "expect": [],
+   "forbid": [
+    "Lotus"
+   ]
+  },
+  {
+   "who": "ben",
+   "q": "where is my kid's school",
+   "expect": [],
+   "forbid": [
+    "Oakwood"
+   ]
+  },
+  {
+   "who": "ben",
+   "q": "what am I allergic to",
+   "expect": [],
+   "forbid": [
+    "penicillin"
+   ]
+  },
+  {
+   "who": "ben",
+   "q": "what temperature do I like",
+   "expect": [
+    "cabin_temp = 23"
+   ],
+   "forbid": [
+    "cabin_temp = 21",
+    "cabin_temp = 19"
+   ]
+  },
+  {
+   "who": "ben",
+   "q": "what is wrong with the car",
+   "expect": [
+    "left rear sensor"
+   ],
+   "forbid": []
+  }
+ ],
+ "expected": {
+  "confirmed_routines": {
+   "asha": [
+    "Oakwood Primary",
+    "Riverside Office",
+    "home"
+   ],
+   "ben": [
+    "Hardware Store",
+    "Lotus Yoga"
+   ]
+  },
+  "confirmed_facts": {
+   "asha": [
+    "climate/cabin_temp = 19.0 (when season=summer)",
+    "climate/cabin_temp = 21.0",
+    "climate/cabin_temp = 21.0 (when season=autumn)",
+    "health/allergy = penicillin",
+    "route_prefs/avoid_tolls = True",
+    "school/school_location = Oakwood Primary",
+    "vehicle_fault/left_rear_sensor = flaky"
+   ],
+   "ben": [
+    "climate/cabin_temp = 23.0",
+    "vehicle_fault/left_rear_sensor = beeping at me"
+   ],
+   "vehicle": [
+    "vehicle_fault/left_rear_sensor = intermittent fault code B1234"
+   ]
+  },
+  "proposals": [
+   {
+    "ts": "2026-09-07T07:41:00",
+    "scope": "asha",
+    "dest": "Oakwood Primary",
+    "tier": "suggest",
+    "correct": true
+   },
+   {
+    "ts": "2026-09-07T08:05:00",
+    "scope": "asha",
+    "dest": "Riverside Office",
+    "tier": "suggest",
+    "correct": true
+   },
+   {
+    "ts": "2026-09-07T17:30:00",
+    "scope": "asha",
+    "dest": "home",
+    "tier": "suggest",
+    "correct": true
+   },
+   {
+    "ts": "2026-09-08T07:38:00",
+    "scope": "asha",
+    "dest": "Oakwood Primary",
+    "tier": "suggest",
+    "correct": true
+   },
+   {
+    "ts": "2026-09-08T08:02:00",
+    "scope": "asha",
+    "dest": "Riverside Office",
+    "tier": "suggest",
+    "correct": true
+   },
+   {
+    "ts": "2026-09-08T17:30:00",
+    "scope": "asha",
+    "dest": "home",
+    "tier": "suggest",
+    "correct": true
+   },
+   {
+    "ts": "2026-09-08T17:56:00",
+    "scope": "ben",
+    "dest": "Lotus Yoga",
+    "tier": "suggest",
+    "correct": true
+   },
+   {
+    "ts": "2026-09-09T07:36:00",
+    "scope": "asha",
+    "dest": "Oakwood Primary",
+    "tier": "suggest",
+    "correct": true
+   },
+   {
+    "ts": "2026-09-09T07:59:00",
+    "scope": "asha",
+    "dest": "Riverside Office",
+    "tier": "suggest",
+    "correct": true
+   },
+   {
+    "ts": "2026-09-09T17:33:00",
+    "scope": "asha",
+    "dest": "home",
+    "tier": "suggest",
+    "correct": true
+   },
+   {
+    "ts": "2026-09-10T07:38:00",
+    "scope": "asha",
+    "dest": "Oakwood Primary",
+    "tier": "suggest",
+    "correct": true
+   },
+   {
+    "ts": "2026-09-10T08:03:00",
+    "scope": "asha",
+    "dest": "Riverside Office",
+    "tier": "suggest",
+    "correct": true
+   },
+   {
+    "ts": "2026-09-10T17:33:00",
+    "scope": "asha",
+    "dest": "home",
+    "tier": "suggest",
+    "correct": true
+   },
+   {
+    "ts": "2026-09-10T17:56:00",
+    "scope": "ben",
+    "dest": "Lotus Yoga",
+    "tier": "suggest",
+    "correct": true
+   },
+   {
+    "ts": "2026-09-11T07:42:00",
+    "scope": "asha",
+    "dest": "Oakwood Primary",
+    "tier": "suggest",
+    "correct": true
+   },
+   {
+    "ts": "2026-09-11T08:09:00",
+    "scope": "asha",
+    "dest": "Riverside Office",
+    "tier": "suggest",
+    "correct": true
+   },
+   {
+    "ts": "2026-09-11T17:24:00",
+    "scope": "asha",
+    "dest": "home",
+    "tier": "suggest",
+    "correct": true
+   },
+   {
+    "ts": "2026-09-11T18:36:00",
+    "scope": "asha",
+    "dest": "FitLife Gym",
+    "tier": "suggest",
+    "correct": true
+   },
+   {
+    "ts": "2026-09-12T10:02:00",
+    "scope": "ben",
+    "dest": "Farmers Market",
+    "tier": "suggest",
+    "correct": true
+   },
+   {
+    "ts": "2026-09-14T07:40:00",
+    "scope": "asha",
+    "dest": "Oakwood Primary",
+    "tier": "suggest",
+    "correct": true
+   },
+   {
+    "ts": "2026-09-14T08:05:00",
+    "scope": "asha",
+    "dest": "Riverside Office",
+    "tier": "suggest",
+    "correct": true
+   },
+   {
+    "ts": "2026-09-14T17:24:00",
+    "scope": "asha",
+    "dest": "home",
+    "tier": "suggest",
+    "correct": true
+   },
+   {
+    "ts": "2026-09-15T07:37:00",
+    "scope": "asha",
+    "dest": "Oakwood Primary",
+    "tier": "suggest",
+    "correct": true
+   },
+   {
+    "ts": "2026-09-15T07:59:00",
+    "scope": "asha",
+    "dest": "Riverside Office",
+    "tier": "suggest",
+    "correct": true
+   },
+   {
+    "ts": "2026-09-15T17:24:00",
+    "scope": "asha",
+    "dest": "home",
+    "tier": "suggest",
+    "correct": true
+   },
+   {
+    "ts": "2026-09-15T18:03:00",
+    "scope": "ben",
+    "dest": "Lotus Yoga",
+    "tier": "suggest",
+    "correct": true
+   },
+   {
+    "ts": "2026-09-16T07:35:00",
+    "scope": "asha",
+    "dest": "Oakwood Primary",
+    "tier": "suggest",
+    "correct": true
+   },
+   {
+    "ts": "2026-09-16T08:01:00",
+    "scope": "asha",
+    "dest": "Riverside Office",
+    "tier": "suggest",
+    "correct": true
+   },
+   {
+    "ts": "2026-09-16T17:27:00",
+    "scope": "asha",
+    "dest": "home",
+    "tier": "suggest",
+    "correct": true
+   },
+   {
+    "ts": "2026-09-17T07:38:00",
+    "scope": "asha",
+    "dest": "Oakwood Primary",
+    "tier": "suggest",
+    "correct": true
+   },
+   {
+    "ts": "2026-09-17T08:04:00",
+    "scope": "asha",
+    "dest": "Riverside Office",
+    "tier": "suggest",
+    "correct": true
+   },
+   {
+    "ts": "2026-09-17T17:25:00",
+    "scope": "asha",
+    "dest": "home",
+    "tier": "suggest",
+    "correct": true
+   },
+   {
+    "ts": "2026-09-17T18:01:00",
+    "scope": "ben",
+    "dest": "Lotus Yoga",
+    "tier": "suggest",
+    "correct": true
+   },
+   {
+    "ts": "2026-09-18T07:41:00",
+    "scope": "asha",
+    "dest": "Oakwood Primary",
+    "tier": "suggest",
+    "correct": true
+   },
+   {
+    "ts": "2026-09-18T08:05:00",
+    "scope": "asha",
+    "dest": "Riverside Office",
+    "tier": "suggest",
+    "correct": true
+   },
+   {
+    "ts": "2026-09-18T17:25:00",
+    "scope": "asha",
+    "dest": "home",
+    "tier": "suggest",
+    "correct": true
+   },
+   {
+    "ts": "2026-09-18T18:35:00",
+    "scope": "asha",
+    "dest": "FitLife Gym",
+    "tier": "suggest",
+    "correct": true
+   },
+   {
+    "ts": "2026-09-19T09:56:00",
+    "scope": "ben",
+    "dest": "Farmers Market",
+    "tier": "suggest",
+    "correct": false
+   },
+   {
+    "ts": "2026-09-21T07:37:00",
+    "scope": "asha",
+    "dest": "Oakwood Primary",
+    "tier": "suggest",
+    "correct": true
+   },
+   {
+    "ts": "2026-09-21T08:03:00",
+    "scope": "asha",
+    "dest": "Riverside Office",
+    "tier": "suggest",
+    "correct": true
+   },
+   {
+    "ts": "2026-09-21T17:35:00",
+    "scope": "asha",
+    "dest": "home",
+    "tier": "suggest",
+    "correct": true
+   },
+   {
+    "ts": "2026-09-22T07:34:00",
+    "scope": "asha",
+    "dest": "Oakwood Primary",
+    "tier": "suggest",
+    "correct": true
+   },
+   {
+    "ts": "2026-09-22T07:58:00",
+    "scope": "asha",
+    "dest": "Riverside Office",
+    "tier": "suggest",
+    "correct": true
+   },
+   {
+    "ts": "2026-09-22T17:25:00",
+    "scope": "asha",
+    "dest": "home",
+    "tier": "suggest",
+    "correct": true
+   },
+   {
+    "ts": "2026-09-22T17:58:00",
+    "scope": "ben",
+    "dest": "Lotus Yoga",
+    "tier": "suggest",
+    "correct": true
+   },
+   {
+    "ts": "2026-09-23T07:36:00",
+    "scope": "asha",
+    "dest": "Oakwood Primary",
+    "tier": "suggest",
+    "correct": true
+   },
+   {
+    "ts": "2026-09-23T07:59:00",
+    "scope": "asha",
+    "dest": "Riverside Office",
+    "tier": "suggest",
+    "correct": true
+   },
+   {
+    "ts": "2026-09-23T17:36:00",
+    "scope": "asha",
+    "dest": "home",
+    "tier": "suggest",
+    "correct": true
+   },
+   {
+    "ts": "2026-09-24T07:44:00",
+    "scope": "asha",
+    "dest": "Oakwood Primary",
+    "tier": "suggest",
+    "correct": true
+   },
+   {
+    "ts": "2026-09-24T08:12:00",
+    "scope": "asha",
+    "dest": "Riverside Office",
+    "tier": "suggest",
+    "correct": true
+   },
+   {
+    "ts": "2026-09-24T17:36:00",
+    "scope": "asha",
+    "dest": "home",
+    "tier": "suggest",
+    "correct": true
+   },
+   {
+    "ts": "2026-09-24T18:06:00",
+    "scope": "ben",
+    "dest": "Lotus Yoga",
+    "tier": "suggest",
+    "correct": true
+   },
+   {
+    "ts": "2026-09-25T07:40:00",
+    "scope": "asha",
+    "dest": "Oakwood Primary",
+    "tier": "suggest",
+    "correct": true
+   },
+   {
+    "ts": "2026-09-25T08:03:00",
+    "scope": "asha",
+    "dest": "Riverside Office",
+    "tier": "suggest",
+    "correct": true
+   },
+   {
+    "ts": "2026-09-25T17:31:00",
+    "scope": "asha",
+    "dest": "home",
+    "tier": "suggest",
+    "correct": true
+   },
+   {
+    "ts": "2026-09-28T07:45:00",
+    "scope": "asha",
+    "dest": "Oakwood Primary",
+    "tier": "suggest",
+    "correct": true
+   },
+   {
+    "ts": "2026-09-28T08:09:00",
+    "scope": "asha",
+    "dest": "Riverside Office",
+    "tier": "suggest",
+    "correct": true
+   },
+   {
+    "ts": "2026-09-28T17:35:00",
+    "scope": "asha",
+    "dest": "home",
+    "tier": "suggest",
+    "correct": true
+   },
+   {
+    "ts": "2026-09-29T07:39:00",
+    "scope": "asha",
+    "dest": "Oakwood Primary",
+    "tier": "suggest",
+    "correct": true
+   },
+   {
+    "ts": "2026-09-29T08:01:00",
+    "scope": "asha",
+    "dest": "Riverside Office",
+    "tier": "suggest",
+    "correct": true
+   },
+   {
+    "ts": "2026-09-29T17:27:00",
+    "scope": "asha",
+    "dest": "home",
+    "tier": "suggest",
+    "correct": true
+   },
+   {
+    "ts": "2026-09-29T18:01:00",
+    "scope": "ben",
+    "dest": "Lotus Yoga",
+    "tier": "suggest",
+    "correct": true
+   },
+   {
+    "ts": "2026-09-30T07:43:00",
+    "scope": "asha",
+    "dest": "Oakwood Primary",
+    "tier": "suggest",
+    "correct": true
+   },
+   {
+    "ts": "2026-09-30T08:08:00",
+    "scope": "asha",
+    "dest": "Riverside Office",
+    "tier": "suggest",
+    "correct": true
+   },
+   {
+    "ts": "2026-09-30T17:29:00",
+    "scope": "asha",
+    "dest": "home",
+    "tier": "suggest",
+    "correct": true
+   },
+   {
+    "ts": "2026-10-01T07:35:00",
+    "scope": "asha",
+    "dest": "Oakwood Primary",
+    "tier": "suggest",
+    "correct": true
+   },
+   {
+    "ts": "2026-10-01T07:57:00",
+    "scope": "asha",
+    "dest": "Riverside Office",
+    "tier": "suggest",
+    "correct": true
+   },
+   {
+    "ts": "2026-10-01T17:36:00",
+    "scope": "asha",
+    "dest": "home",
+    "tier": "suggest",
+    "correct": true
+   },
+   {
+    "ts": "2026-10-01T17:57:00",
+    "scope": "ben",
+    "dest": "Lotus Yoga",
+    "tier": "suggest",
+    "correct": true
+   },
+   {
+    "ts": "2026-10-02T07:36:00",
+    "scope": "asha",
+    "dest": "Oakwood Primary",
+    "tier": "suggest",
+    "correct": true
+   },
+   {
+    "ts": "2026-10-02T08:03:00",
+    "scope": "asha",
+    "dest": "Riverside Office",
+    "tier": "suggest",
+    "correct": true
+   },
+   {
+    "ts": "2026-10-02T17:36:00",
+    "scope": "asha",
+    "dest": "home",
+    "tier": "suggest",
+    "correct": true
+   },
+   {
+    "ts": "2026-10-05T07:34:00",
+    "scope": "asha",
+    "dest": "Oakwood Primary",
+    "tier": "suggest",
+    "correct": true
+   },
+   {
+    "ts": "2026-10-05T07:59:00",
+    "scope": "asha",
+    "dest": "Riverside Office",
+    "tier": "suggest",
+    "correct": true
+   },
+   {
+    "ts": "2026-10-05T17:26:00",
+    "scope": "asha",
+    "dest": "home",
+    "tier": "suggest",
+    "correct": true
+   },
+   {
+    "ts": "2026-10-06T07:43:00",
+    "scope": "asha",
+    "dest": "Oakwood Primary",
+    "tier": "suggest",
+    "correct": true
+   },
+   {
+    "ts": "2026-10-06T08:10:00",
+    "scope": "asha",
+    "dest": "Riverside Office",
+    "tier": "suggest",
+    "correct": true
+   },
+   {
+    "ts": "2026-10-06T17:26:00",
+    "scope": "asha",
+    "dest": "home",
+    "tier": "suggest",
+    "correct": true
+   },
+   {
+    "ts": "2026-10-06T17:56:00",
+    "scope": "ben",
+    "dest": "Lotus Yoga",
+    "tier": "suggest",
+    "correct": true
+   },
+   {
+    "ts": "2026-10-07T07:46:00",
+    "scope": "asha",
+    "dest": "Oakwood Primary",
+    "tier": "suggest",
+    "correct": true
+   },
+   {
+    "ts": "2026-10-07T08:13:00",
+    "scope": "asha",
+    "dest": "Riverside Office",
+    "tier": "suggest",
+    "correct": true
+   },
+   {
+    "ts": "2026-10-07T17:35:00",
+    "scope": "asha",
+    "dest": "home",
+    "tier": "suggest",
+    "correct": true
+   },
+   {
+    "ts": "2026-10-08T07:40:00",
+    "scope": "asha",
+    "dest": "Oakwood Primary",
+    "tier": "suggest",
+    "correct": true
+   },
+   {
+    "ts": "2026-10-08T08:03:00",
+    "scope": "asha",
+    "dest": "Riverside Office",
+    "tier": "suggest",
+    "correct": true
+   },
+   {
+    "ts": "2026-10-08T17:27:00",
+    "scope": "asha",
+    "dest": "home",
+    "tier": "suggest",
+    "correct": true
+   },
+   {
+    "ts": "2026-10-08T17:57:00",
+    "scope": "ben",
+    "dest": "Lotus Yoga",
+    "tier": "suggest",
+    "correct": true
+   },
+   {
+    "ts": "2026-10-09T07:37:00",
+    "scope": "asha",
+    "dest": "Oakwood Primary",
+    "tier": "suggest",
+    "correct": true
+   },
+   {
+    "ts": "2026-10-09T08:01:00",
+    "scope": "asha",
+    "dest": "Riverside Office",
+    "tier": "suggest",
+    "correct": true
+   },
+   {
+    "ts": "2026-10-09T17:30:00",
+    "scope": "asha",
+    "dest": "home",
+    "tier": "suggest",
+    "correct": true
+   },
+   {
+    "ts": "2026-10-10T10:02:00",
+    "scope": "ben",
+    "dest": "Hardware Store",
+    "tier": "suggest",
+    "correct": true
+   }
+  ],
+  "no_said": {
+   "Farmers Market": 1
+  },
+  "forget": {
+   "target": "FitLife Gym",
+   "forgotten_in_week": 5,
+   "via": "proposal",
+   "proposals_after_forget": 0,
+   "routine_record_exists": false,
+   "tombstoned": true
+  },
+  "correction": {
+   "target": "Farmers Market",
+   "no_said": 1,
+   "suggestions_after_first_no": 0,
+   "still_confirmed": false
+  },
+  "cross_person_leaks": [],
+  "guest_scopes_remaining": [],
+  "qa_accuracy": 1.0,
+  "cloud_masked_fields": 2,
+  "tombstones": [
+   {
+    "scope": "asha",
+    "signature": "route:fitlife gym"
+   }
+  ]
+ }
+}

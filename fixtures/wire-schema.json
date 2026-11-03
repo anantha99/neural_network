@@ -1,0 +1,424 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "carmem wire schema",
+  "version": "1",
+  "$defs": {
+    "IdentitySignal": {
+      "type": "object",
+      "properties": {
+        "kind": {
+          "type": "string",
+          "enum": [
+            "seat_profile",
+            "phone",
+            "key_fob",
+            "voice"
+          ]
+        },
+        "value": {
+          "type": "string"
+        },
+        "confidence": {
+          "type": "number",
+          "default": 1.0
+        },
+        "role": {
+          "type": "string",
+          "enum": [
+            "driver",
+            "passenger"
+          ],
+          "default": "driver"
+        }
+      },
+      "required": [
+        "kind",
+        "value"
+      ],
+      "additionalProperties": false
+    },
+    "Trip": {
+      "type": "object",
+      "properties": {
+        "start": {
+          "type": "string",
+          "description": "ISO-8601 local time without offset, e.g. 2026-09-07T07:40:00"
+        },
+        "end": {
+          "type": "string",
+          "description": "ISO-8601 local time without offset, e.g. 2026-09-07T07:40:00"
+        },
+        "origin": {
+          "type": "string"
+        },
+        "destination": {
+          "type": "string"
+        },
+        "occupants": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "settings": {
+          "type": "object",
+          "additionalProperties": {
+            "type": [
+              "number",
+              "string",
+              "boolean"
+            ]
+          }
+        },
+        "route": {
+          "type": "object",
+          "additionalProperties": true
+        },
+        "distance_km": {
+          "type": "number"
+        }
+      },
+      "required": [
+        "start",
+        "end",
+        "origin",
+        "destination"
+      ],
+      "additionalProperties": false
+    },
+    "Event": {
+      "type": "object",
+      "description": "One line of a driver log. 'driver' is a person id or 'guest' or 'vehicle' for sensors.",
+      "properties": {
+        "ts": {
+          "type": "string",
+          "description": "ISO-8601 local time without offset, e.g. 2026-09-07T07:40:00"
+        },
+        "type": {
+          "type": "string",
+          "enum": [
+            "trip",
+            "say",
+            "sensor"
+          ]
+        },
+        "driver": {
+          "type": "string"
+        },
+        "week": {
+          "type": "integer"
+        },
+        "trip": {
+          "type": "object",
+          "properties": {
+            "start": {
+              "type": "string",
+              "description": "ISO-8601 local time without offset, e.g. 2026-09-07T07:40:00"
+            },
+            "end": {
+              "type": "string",
+              "description": "ISO-8601 local time without offset, e.g. 2026-09-07T07:40:00"
+            },
+            "origin": {
+              "type": "string"
+            },
+            "destination": {
+              "type": "string"
+            },
+            "occupants": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            },
+            "settings": {
+              "type": "object",
+              "additionalProperties": {
+                "type": [
+                  "number",
+                  "string",
+                  "boolean"
+                ]
+              }
+            },
+            "route": {
+              "type": "object",
+              "additionalProperties": true
+            },
+            "distance_km": {
+              "type": "number"
+            }
+          },
+          "required": [
+            "start",
+            "end",
+            "origin",
+            "destination"
+          ],
+          "additionalProperties": false
+        },
+        "text": {
+          "type": "string"
+        },
+        "payload": {
+          "type": "object",
+          "additionalProperties": true
+        },
+        "reject_if_proposed": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "forget_if_proposed": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      },
+      "required": [
+        "ts",
+        "type",
+        "driver"
+      ],
+      "additionalProperties": false
+    },
+    "Proposal": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "kind": {
+          "type": "string",
+          "enum": [
+            "routine",
+            "fact"
+          ]
+        },
+        "record_id": {
+          "type": "string"
+        },
+        "scope": {
+          "type": "string"
+        },
+        "tier": {
+          "type": "string",
+          "enum": [
+            "never",
+            "silent",
+            "suggest",
+            "act"
+          ]
+        },
+        "text": {
+          "type": "string"
+        },
+        "action": {
+          "type": "object",
+          "additionalProperties": true
+        }
+      },
+      "required": [
+        "kind",
+        "record_id",
+        "scope",
+        "tier",
+        "text",
+        "action"
+      ],
+      "additionalProperties": false
+    },
+    "ContextPacket": {
+      "type": "object",
+      "properties": {
+        "driver_id": {
+          "type": "string"
+        },
+        "destination": {
+          "type": "string",
+          "enum": [
+            "local",
+            "cloud"
+          ]
+        },
+        "facts": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "id": {
+                "type": "string"
+              },
+              "text": {
+                "type": "string"
+              },
+              "source": {
+                "type": "string"
+              },
+              "state": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "id",
+              "text",
+              "source",
+              "state"
+            ]
+          }
+        },
+        "routines": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": true
+          }
+        },
+        "vehicle": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": true
+          }
+        },
+        "episodes": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": true
+          }
+        },
+        "masked_count": {
+          "type": "integer"
+        }
+      },
+      "required": [
+        "driver_id",
+        "destination",
+        "facts",
+        "routines",
+        "vehicle",
+        "episodes",
+        "masked_count"
+      ],
+      "additionalProperties": false
+    }
+  },
+  "tools": [
+    {
+      "name": "memory_recall",
+      "description": "Search the driver's memory (facts, routines, recent trips, vehicle notes) for the current occupant only. Use before answering anything that depends on the driver's history.",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "query": {
+            "type": "string"
+          },
+          "k": {
+            "type": "integer",
+            "default": 6
+          }
+        },
+        "required": [
+          "query"
+        ],
+        "additionalProperties": false
+      }
+    },
+    {
+      "name": "memory_remember",
+      "description": "Store something the driver just said that should persist across trips.",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "text": {
+            "type": "string",
+            "description": "The utterance, verbatim."
+          }
+        },
+        "required": [
+          "text"
+        ],
+        "additionalProperties": false
+      }
+    },
+    {
+      "name": "memory_forget",
+      "description": "Delete a memory the driver wants gone. Pass the record id, or a short description to search.",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "target": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "target"
+        ],
+        "additionalProperties": false
+      }
+    },
+    {
+      "name": "memory_correct",
+      "description": "Driver answered a proactive suggestion. answer='no' demotes it, 'yes' confirms it.",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "answer": {
+            "type": "string",
+            "enum": [
+              "yes",
+              "no"
+            ]
+          }
+        },
+        "required": [
+          "answer"
+        ],
+        "additionalProperties": false
+      }
+    },
+    {
+      "name": "memory_explain",
+      "description": "Show the evidence behind a memory record so the driver can audit it.",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "record_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "record_id"
+        ],
+        "additionalProperties": false
+      }
+    },
+    {
+      "name": "memory_proactive",
+      "description": "What the car would do right now on its own, with the tier that governs each item.",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "location": {
+            "type": "string",
+            "description": "Where the car is now, if known."
+          }
+        },
+        "additionalProperties": false
+      }
+    }
+  ],
+  "replay_protocol": [
+    "Events are sorted by ts. A sensor event calls record_vehicle_event(key, value, now=ts) with no session.",
+    "When (driver, date) changes: ignition_off(now = ts - 1 min) if a session is open, then ignition_on(signals for driver, now = ts - 5 min). 'guest' uses one voice signal with confidence 0.55.",
+    "A 'say' event calls hear(text, now=ts).",
+    "A 'trip' event first calls proactive(now = start - 2 min, location = origin). Each routine proposal is logged as (ts=start, scope, destination, tier, correct = destination == trip.destination).",
+    "If a routine proposal's destination matches reject_if_proposed: hear('no', now = start - 1 min).",
+    "If a routine proposal's destination contains a forget_if_proposed entry: hear('forget that', now = start - 1 min). If none matched: hear('forget that I go to the <entry>', now = start - 1 min).",
+    "Then record_trip(trip, now = end).",
+    "After the last event: ignition_off(now = last ts + 1 h)."
+  ]
+}

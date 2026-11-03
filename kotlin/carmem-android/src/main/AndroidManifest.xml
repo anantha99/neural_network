@@ -1,0 +1,37 @@
+<?xml version="1.0" encoding="utf-8"?>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+
+    <!-- Vehicle properties. These are signature|privileged: the memory service ships on the
+         OEM image or receives these signals from an OEM component. Verify each name against
+         the VehiclePropertyIds docs for the target AAOS release. -->
+    <uses-permission android:name="android.car.permission.CAR_POWERTRAIN" />          <!-- IGNITION_STATE -->
+    <uses-permission android:name="android.car.permission.CONTROL_CAR_CLIMATE" />     <!-- HVAC_TEMPERATURE_SET -->
+    <uses-permission android:name="android.car.permission.CONTROL_CAR_SEATS" />       <!-- SEAT_OCCUPANCY -->
+    <uses-permission android:name="android.car.permission.CAR_SPEED" />               <!-- PERF_VEHICLE_SPEED -->
+    <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
+    <uses-permission android:name="android.permission.BLUETOOTH_CONNECT" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_SPECIAL_USE" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_LOCATION" />
+    <uses-permission android:name="android.permission.INTERACT_ACROSS_USERS" />      <!-- occupant zone -> user -->
+    <uses-permission android:name="android.permission.QUERY_USERS" />                <!-- guest check for the driver user -->
+
+    <uses-feature android:name="android.hardware.type.automotive" android:required="true" />
+
+    <application>
+        <!-- One memory service per vehicle. The on-device assistant and the cloud bridge both
+             bind to it; it is the only process that opens the database. -->
+        <service
+            android:name="carmem.android.CarMemoryService"
+            android:exported="true"
+            android:foregroundServiceType="location|specialUse"
+            android:permission="carmem.permission.BIND_MEMORY">
+            <property android:name="android.app.PROPERTY_SPECIAL_USE_FGS_SUBTYPE" android:value="in-car assistant memory" />
+            <intent-filter>
+                <action android:name="carmem.android.BIND" />
+            </intent-filter>
+        </service>
+    </application>
+
+    <permission android:name="carmem.permission.BIND_MEMORY" android:protectionLevel="signature" />
+</manifest>

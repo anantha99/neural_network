@@ -1,0 +1,15 @@
+__pycache__/
+*.pyc
+*.db
+*.sqlite
+.pytest_cache/
+*.egg-info/
+build/
+dist/
+bench/results/
+.ipynb_checkpoints/
+kotlin/.gradle/
+kotlin/.kotlin/
+kotlin/build/
+kotlin/*/build/
+kotlin/local.properties

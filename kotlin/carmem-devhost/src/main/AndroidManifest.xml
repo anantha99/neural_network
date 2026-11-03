@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="utf-8"?>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+
+    <uses-permission android:name="carmem.permission.BIND_MEMORY" />
+    <!-- privileged: exempts the foreground-service start below from background-start limits -->
+    <uses-permission android:name="android.permission.START_ACTIVITIES_FROM_BACKGROUND" />
+    <!-- only for the dev cloud model (GeminiLlmClient); the memory service itself needs no network -->
+    <uses-permission android:name="android.permission.INTERNET" />
+
+    <!-- Not persistent: persistent apps run in the headless system user 0, which gets no location
+         on AAOS. Start it in the driver's user with a probe broadcast (sim/drive.sh does). -->
+    <application
+        android:name="carmem.devhost.DevHostApp"
+        android:label="carmem dev host">
+        <!-- adb: am broadcast -a carmem.debug.PROBE -n carmem.devhost/.ProbeReceiver with string extras op and arg -->
+        <receiver android:name="carmem.devhost.ProbeReceiver" android:exported="true">
+            <intent-filter>
+                <action android:name="carmem.debug.PROBE" />
+            </intent-filter>
+        </receiver>
+        <receiver android:name="carmem.devhost.ProposalLogger" android:exported="false">
+            <intent-filter>
+                <action android:name="carmem.android.PROPOSALS" />
+            </intent-filter>
+        </receiver>
+    </application>
+</manifest>

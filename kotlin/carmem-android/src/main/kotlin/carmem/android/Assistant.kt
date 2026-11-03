@@ -204,7 +204,7 @@ class Assistant(
                         turns += ChatTurn.Model(reply)
                         val results = reply.calls.map { c ->
                             val args: JsonObject = if (cloud) unmaskArgs(c.args, packet) else c.args
-                            val result: JsonObject = runTool(c.name, args, now)
+                            val result: JsonObject = runTool(c.name, args, now, text, heard)
                             val sent: JsonObject = if (cloud) maskJson(result, packet) as JsonObject else result
                             traces += ToolTrace(c.name, c.args, sent)
                             c to sent
@@ -222,10 +222,14 @@ class Assistant(
         }
     }
 
-    /** Execute a memory tool on the car. `memory_remember` logs now and extracts in the background, like [ask]. */
-    private fun runTool(name: String, args: JsonObject, now: LocalDateTime): JsonObject = try {
+    /**
+     * Execute a memory tool on the car. `memory_remember` logs now and extracts in the background, like [ask];
+     * the model often asks to remember the driver's own words, which [ask] already logged, so that is not logged twice.
+     */
+    private fun runTool(name: String, args: JsonObject, now: LocalDateTime, said: String, heard: JsonObject): JsonObject = try {
         if (name == "memory_remember") {
             val text = args["text"]?.jsonPrimitive?.contentOrNull ?: ""
+            if (tokens(text) == tokens(said)) return heard
             val r = memory.hear(text, null, now, extract = false)
             if (r["deferred"]?.jsonPrimitive?.booleanOrNull == true)
                 deferExtraction(r["episode"]!!.jsonPrimitive.longOrNull!!, r["scope"]!!.jsonPrimitive.content, text, now)

@@ -205,3 +205,32 @@ Known limits and suggestions outside these modules:
   service keeps its own policy (the fixture's equals the default apart from Kotlin-only keys).
 - An unpinned clock plus the emulator's own `seat_profile user:10` signal (emitted at car connect) within 10 minutes
   of "Guest arrives" would auto-enroll "Driver 10" instead of a guest; pin the clock first.
+
+## Run on the emulator (2026-11-04)
+
+`gradle test :carmem-devhost:assembleDebug` compiled both Android modules with no changes needed; 20 JVM tests pass
+(+2 live, skipped). All eight beats were run through the probes (`seed`, `clock`, `event`, `chat`, `whoami`,
+`proactive`) against cloud Gemma 4 and gave the README's results: Asha's ACT climate + SUGGEST school route, "no"
+skipped it, "why ... 21 degrees" explained from 10 observations, the office routine forgotten (nothing offered at
+Oakwood Primary 08:05), the gym reported as already forgotten, the guest's "12 Elm Street" gone after ignition off
+(0 guest scopes, no `home_address` fact), and the cloud question answered after a `memory_recall` tool round with
+school and allergy masked as `<school_1>` / `<health_2>`.
+
+VERIFY results:
+
+- Gemma 4 (`gemma-4-26b-a4b-it`) accepts `tools` with lowercase schema types, returns `functionCall` parts (with
+  an `id` and a `thoughtSignature`), and answers from a `functionResponse` sent in a `"user"` turn. Checked with
+  direct requests and in the service. No Gemini model id is needed on line 2.
+- The fixture is in the APK as `assets/household_seed7_w8.json`.
+- Not verified: the `DemoActivity` screen and its receivers. On this emulator the display stopped updating (the
+  launcher was black too, clock frozen) and the activity window never got a surface; a cold restart is the next step.
+
+Fixed from the run:
+
+- **Each chat utterance was stored and extracted twice**: `ask` logs it, then the model called `memory_remember`
+  with the same words. `runTool` now returns the existing log for a `memory_remember` of the driver's own words.
+- **`seed` called the cloud model for every fixture utterance** (slow, 500s, results differ from the fixture). It
+  now replays through a model-less `CarMemory` on the same database, as the reference does. Seeding still takes
+  ~80 s on this emulator (SQLite on 2 GB, not the model), not "a few seconds".
+- At service start the emulator's `seat_profile user:10` auto-enrolls "Driver user:10" at wall time even with VHAL
+  ignition off; `seed` closes that session, so the demo is unaffected, but the person remains.

@@ -50,6 +50,8 @@ class CarMemoryService : Service() {
     private lateinit var worker: HandlerThread
     private lateinit var handler: Handler
     private lateinit var memory: CarMemory
+    private lateinit var db: AndroidSqlDriver
+    private lateinit var policy: Policy
     /** "Now" for the memory and every platform adapter; the demo pins it with [ICarMemory.setClock]. */
     private val clock = DemoClock()
     private lateinit var assistant: Assistant
@@ -67,7 +69,7 @@ class CarMemoryService : Service() {
         handler = Handler(worker.looper)
         val dir = noBackupFilesDir.also { it.mkdirs() }     // credential-encrypted, per Android user
         val policyFile = File(dir, "policy.json")
-        val policy = if (policyFile.exists()) Policy.fromJson(policyFile.readText()) else Policy()
+        policy = if (policyFile.exists()) Policy.fromJson(policyFile.readText()) else Policy()
         // On-device model if one has been provisioned, else the dev-only cloud Gemma; without either extraction stays rule-based.
         // gemini.key: API key, optional second line = model. Used for extraction when no on-device model is present,
         // and for the assistant's chat loop either way (there is no on-device chat model yet).
@@ -75,7 +77,8 @@ class CarMemoryService : Service() {
             ?.takeIf { it.isNotEmpty() }
         llm = File(dir, MODEL_FILE).takeIf { it.exists() }?.let { LiteRtLmClient(it.absolutePath, cacheDir.absolutePath) }
             ?: gemini?.let { GeminiLlmClient(it[0], it.getOrElse(1) { GeminiLlmClient.DEFAULT_MODEL }) }
-        memory = CarMemory(AndroidSqlDriver(File(dir, "carmem.db").absolutePath), policy, llm, clock = clock)
+        db = AndroidSqlDriver(File(dir, "carmem.db").absolutePath)
+        memory = CarMemory(db, policy, llm, clock = clock)
         val places = PlaceResolver().also { pr -> File(dir, "places.tsv").takeIf { it.exists() }?.let { pr.restore(it.readText()) } }
         session = CarSession(
             memory, places,
@@ -158,7 +161,9 @@ class CarMemoryService : Service() {
             // Close any open driving session through the session, so its state matches the memory's after replay.
             if (memory.occupancy != null) session.onEvent(IgnitionChanged(memory.clock(), false))
             val started = System.currentTimeMillis()
-            val r = FixtureReplay(memory).replay(fixture)
+            // Replay on the rules, like the reference that produced the fixture: a model here makes seeding slow
+            // (one network call per utterance) and the history non-deterministic. Same database, same thread.
+            val r = FixtureReplay(CarMemory(db, policy, llm = null, clock = clock)).replay(fixture)
             Log.i(TAG, "seeded ${r.events} events in ${System.currentTimeMillis() - started} ms")
             buildJsonObject {
                 put("events", r.events); put("proposals", r.proposals.size)

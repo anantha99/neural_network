@@ -29,8 +29,10 @@ LangMem are in `docs/DESIGN.md`; read it first.
 | Wire schema + fixtures | `carmem/wire.py`, `fixtures/` | Exported with `python -m bench.export_fixtures`. Re-export after any policy or consolidation change. |
 | Kotlin core | `kotlin/carmem-core` | Line-for-line port. `ConformanceTest` replays the fixture and matches the reference exactly. 6 tests pass. |
 | Car pipeline | `kotlin/carmem-car` | Trip segmenter, place resolver, session orchestrator. Pure JVM. 3 tests pass. |
-| Android module | `kotlin/carmem-android` | Written, never compiled: the cloud session could not download an Android SDK. Included in Gradle only when `ANDROID_HOME` or `kotlin/local.properties` points at an SDK. |
-| LiteRT-LM adapter | not started | Implement `carmem.LlmClient.completeJson` over LiteRT-LM with JSON-schema constrained decoding. |
+| Android module | `kotlin/carmem-android` | Compiles and runs on the AAOS 15 emulator (2026-11-01). Ignition, HVAC, location and driver-user signals arrive; trips, an implicit climate fact and an act-tier proposal were verified end to end. Included in Gradle only when `ANDROID_HOME` or `kotlin/local.properties` points at an SDK. |
+| Dev host | `kotlin/carmem-devhost` | Dev-only priv-app that hosts the service on the emulator, plus `sim/drive.sh` (three weeks of school runs). See its README. |
+| LiteRT-LM adapter | `carmem-android/LiteRtLmClient.kt` | Written and compiled against litertlm-android 0.19.0 (`ResponseFormat.json` constrained decoding, greedy sampler, fresh conversation per call). Used when `gemma-3n-E2B-it-int4.litertlm` is in the service's `noBackupFilesDir`. Not yet run with a model. |
+| Cloud model (dev) | `carmem-android/GeminiLlmClient.kt` | Gemma 4 (`gemma-4-26b-a4b-it`) on the Gemini API, schema enforced server-side, retries 429/5xx twice. Used when `gemini.key` (key, optional second line = model) is in `noBackupFilesDir` and no `.litertlm` model is. Verified on the emulator 2026-11-03. Sends raw utterances to Google: development only. `LiveLlmTest` runs the same path on the JVM when `GEMINI_API_KEY` is set. |
 | Cloud bridge | not started | Koog-based client: send `context(query, "cloud").render()`, execute tool calls locally with `handleTool`, `unmask` the reply. |
 
 ## Build and test
@@ -38,14 +40,17 @@ LangMem are in `docs/DESIGN.md`; read it first.
 ```
 pip install -e .[dev] && python -m pytest -q          # Python reference, 24 tests
 python -m bench.run_bench                              # benchmark table
-cd kotlin && gradle test                               # core + car on the JVM, 9 tests
+cd kotlin && gradle test                               # core + car on the JVM, 10 tests (+2 live, skipped without GEMINI_API_KEY)
 cd kotlin && gradle :carmem-android:assembleDebug      # needs an Android SDK with platform 35
 ```
 
-Gradle 8.14 and JDK 21 were used. Kotlin 2.1.20, AGP 8.9.1, kotlinx-serialization 1.8.0.
+Gradle 8.13/8.14 and JDK 21. Kotlin 2.4.20 (raised from 2.1.20 because litertlm-android 0.19.0 is built
+with Kotlin 2.4), AGP 8.9.1, kotlinx-serialization 1.8.0. There is no Gradle wrapper yet.
 Maven Central rate-limited the cloud proxy; `--max-workers=1` and a retry fixed it.
 
 ## First things to do on a machine with Android Studio
+
+Done on 2026-11-01 except where noted above; kept for reference.
 
 1. Set `sdk.dir` in `kotlin/local.properties` and run `gradle :carmem-android:assembleDebug`.
    Expect compile errors; the module was written against API memory, not a compiler.
@@ -61,6 +66,40 @@ Maven Central rate-limited the cloud proxy; `--max-workers=1` and a retry fixed 
 3. Run on the AAOS emulator with the car sensor controls: toggle ignition, set HVAC, move
    location, confirm `CarMemoryService` logs trips and that `ICarMemory.proactive` returns
    proposals from the right place after three weeks of simulated runs.
+
+## Found on the emulator (2026-11-01)
+
+- **Run the service in the driver's user, not user 0.** AAOS user 0 is headless: location listeners
+  there stay inactive, and the database would be shared by everyone. The service is now a started
+  foreground service of type `location`, which also avoids background location throttling.
+- **Nobody is ever enrolled on device.** Unbound hard signals resolve to a guest, and guests never
+  form memory. `ICarMemory.enroll` now exists. Open decision: whether the service should
+  auto-enroll each non-guest AAOS user on first sight.
+- **Routines key on place names, which change.** "home" is labelled only after the first night's
+  dwell, so the first week's trips (`place-1 -> place-6`) most likely do not count toward the `home`
+  routine: after three weeks it was a candidate with 2 occurrences. Probable fix: key on the stable
+  place id and render the label.
+- `isGuestUser(int)` is blocked hidden API; the guest check uses `createContextAsUser` +
+  `isGuestUser()` (system APIs, via reflection) and needs `QUERY_USERS` and targetSdk >= 33.
+- `android.useAndroidX=true` was missing from `gradle.properties`.
+
+## Found running a real model (2026-11-03)
+
+Gemma 4 through `GeminiLlmClient`, on the JVM and in the service on the emulator. Fixed in both the
+Python reference and Kotlin:
+
+- **The model invented keys** (`preferred_temperature`, `cabin_temperature`), so stated preferences did
+  not line up with observed settings. The extraction prompt now names the canonical keys.
+- **Act-tier proposals came from any climate/seat/media fact**, e.g. "Setting country music dislike to
+  dislike." Only keys in `SETTING_CATEGORIES` (cabin_temp, fan, seat_position, media) become `set` actions.
+- **Reconciliation saw values only** ("Wednesdays at 5" vs "Tuesdays at 5"), so the model added a second
+  note instead of updating. It now sees `key: value` on both sides; the rules still compare values.
+
+Still true: the Gemini free tier returns frequent 500s, and with retries a call can take 50–120 s.
+`hear()` runs the model on the service's single worker thread, so car events queue behind it; a real
+assistant should not wait on extraction. The emulator needs `svc wifi enable` and
+`cmd wifi connect-network AndroidWifi open` after each boot, and with 2 GB of RAM car_service can
+crash-loop at boot under host load (a cold restart fixed it).
 
 ## Decisions already made (do not re-litigate without reason)
 

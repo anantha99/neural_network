@@ -50,15 +50,17 @@ class Reconciler:
         self.embedder = embedder
         self.llm = llm
 
-    def decide(self, new_text: str, existing: list[Fact]) -> Decision:
+    def decide(self, new_text: str, existing: list[Fact], new_key: str | None = None) -> Decision:
+        """new_key is the subject the extractor gave the new statement; the model sees key and value, the rules values only."""
         if not existing:
             return Decision("add", None, 0.0, "rules")
         scored = sorted(((similarity(new_text, str(f.value), self.embedder), f) for f in existing), key=lambda x: -x[0])
         scored = scored[: self.policy.reconcile_top_k]
         if self.llm is not None:
             try:
-                listing = "\n".join(f"{i}. {f.value}" for i, (_, f) in enumerate(scored))
-                out = self.llm.complete_json(RECONCILE_SYSTEM, f"NEW: {new_text}\nEXISTING:\n{listing}", RECONCILE_SCHEMA)
+                listing = "\n".join(f"{i}. {f.key.replace('_', ' ')}: {f.value}" for i, (_, f) in enumerate(scored))
+                new = f"{new_key.replace('_', ' ')}: {new_text}" if new_key else new_text
+                out = self.llm.complete_json(RECONCILE_SYSTEM, f"NEW: {new}\nEXISTING:\n{listing}", RECONCILE_SCHEMA)
                 op = out.get("op", "add")
                 idx = out.get("target_index")
                 if op in ("update", "noop") and isinstance(idx, int) and 0 <= idx < len(scored):

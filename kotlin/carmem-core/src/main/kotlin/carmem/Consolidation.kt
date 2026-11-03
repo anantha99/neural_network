@@ -58,7 +58,7 @@ class Consolidator(val store: Store, val policy: Policy, val embedder: Embedder 
 
     private fun stateFreeText(scope: String, c: Candidate, ev: Evidence, now: LocalDateTime): Fact {
         val existing = store.facts(listOf(scope), c.category, null, listOf(State.CONFIRMED)).filter { it.isCurrent }
-        val d = reconciler.decide(c.value.render(), existing)
+        val d = reconciler.decide(c.value.render(), existing, c.key)
         store.audit(now, scope, "fact.reconcile", buildJsonObject { put("op", d.op); put("by", d.by); put("similarity", d.similarity) })
         return when {
             d.op == "noop" && d.target != null -> { d.target.support += ev; d.target.updated = iso(now); store.upsertFact(d.target); d.target }
@@ -252,7 +252,8 @@ class Consolidator(val store: Store, val policy: Policy, val embedder: Embedder 
         val conds = conditionsFor(now)
         val confirmed = store.facts(listOf(scope), states = listOf(State.CONFIRMED))
         for (f in confirmed) {
-            if (f.id in suppressed || f.category !in setOf("climate", "seat", "media")) continue
+            // only settings the car can apply; a stated like or dislike in these categories is context, not an action
+            if (f.id in suppressed || SETTING_CATEGORIES[f.key] != f.category) continue
             if (f.condition != null && !condMatches(f.condition, conds)) continue
             val tier = policy.effectiveTier(f.category, f.demotion)
             if (tier == Tier.NEVER || tier == Tier.SILENT) continue

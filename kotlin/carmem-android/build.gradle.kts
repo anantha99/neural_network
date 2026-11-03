@@ -23,7 +23,10 @@ android {
         sourceCompatibility = JavaVersion.VERSION_17
         targetCompatibility = JavaVersion.VERSION_17
     }
-    kotlinOptions { jvmTarget = "17" }
+}
+
+kotlin {
+    compilerOptions { jvmTarget.set(org.jetbrains.kotlin.gradle.dsl.JvmTarget.JVM_17) }
 }
 
 dependencies {
@@ -34,4 +37,6 @@ dependencies {
     implementation("androidx.sqlite:sqlite-bundled:2.5.2")
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.10.1")
     implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.8.0")
+    // On-device Gemma with JSON-schema constrained decoding (LiteRtLmClient). Ships arm64-v8a and x86_64 only.
+    implementation("com.google.ai.edge.litertlm:litertlm-android:0.19.0")
 }

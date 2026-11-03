@@ -33,6 +33,9 @@ from .reconcile import Reconciler
 from .retrieval import Embedder, HashingEmbedder
 from .store import Store
 
+# Cabin settings the car can observe and apply, by key.
+SETTING_CATEGORIES = {"cabin_temp": "climate", "seat_position": "seat", "media": "media", "fan": "climate"}
+
 DAY_NAMES = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"]
 
 
@@ -110,7 +113,7 @@ class Consolidator:
     def _state_free_text(self, scope: str, c: Candidate, ev: Evidence, now: datetime) -> Fact:
         """Notes reconcile by similarity (add / update / noop), not by key."""
         existing = [f for f in self.store.facts([scope], c.category, states=[State.CONFIRMED]) if f.is_current]
-        d = self.reconciler.decide(str(c.value), existing)
+        d = self.reconciler.decide(str(c.value), existing, c.key)
         self.store.audit(now, scope, "fact.reconcile", {"op": d.op, "by": d.by, "similarity": round(d.similarity, 3),
                                                         "target": d.target.id if d.target else None})
         if d.op == "noop" and d.target:
@@ -409,7 +412,8 @@ class Consolidator:
             out.append(Proposal("routine", r.id, scope, tier, text, dict(r.action)))
         conds = conditions_for(now)
         for f in self.store.facts([scope], states=[State.CONFIRMED]):
-            if f.id in suppressed or f.category not in ("climate", "seat", "media"):
+            # only settings the car can apply; a stated like or dislike in these categories is context, not an action
+            if f.id in suppressed or SETTING_CATEGORIES.get(f.key) != f.category:
                 continue
             if f.condition and not _cond_matches(f.condition, conds):
                 continue

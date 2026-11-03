@@ -69,6 +69,10 @@ interface LlmClient { fun completeJson(system: String, user: String, schemaJson:
 const val EXTRACTION_SYSTEM = "You extract durable memory from one utterance spoken to an in-car assistant. " +
     "Return only facts worth remembering across trips: preferences, places, people, health, or complaints about the car itself (about=vehicle). " +
     "A one-off command such as 'set it to 21' is kind=observed; a preference such as 'I like it at 21' is kind=stated. Use a short snake_case key. " +
+    "Use these keys when they fit, so memories line up with what the car records: cabin_temp (climate, degrees C), " +
+    "fan (climate), seat_position (seat) and media (media) only for a value the car can set directly; " +
+    "avoid_tolls (route_prefs, true or false), home (home_address), school_location (school), allergy (health). " +
+    "A like or dislike gets its own key, e.g. disliked_genre. " +
     "Put a condition (e.g. 'season=winter', 'daypart=morning') only when the speaker states one. Return an empty list when nothing durable was said."
 
 const val EXTRACTION_SCHEMA = """{"type":"object","properties":{"candidates":{"type":"array","items":{"type":"object","properties":{

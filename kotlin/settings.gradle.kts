@@ -16,6 +16,7 @@ val sdkDir = System.getenv("ANDROID_HOME") ?: System.getenv("ANDROID_SDK_ROOT")
     ?: file("local.properties").takeIf { it.exists() }?.readLines()?.firstOrNull { it.startsWith("sdk.dir=") }?.substringAfter("=")
 if (sdkDir != null && file(sdkDir).exists()) {
     include(":carmem-android")
+    include(":carmem-devhost")
 } else {
     logger.lifecycle("carmem: no Android SDK found (ANDROID_HOME or local.properties sdk.dir); skipping :carmem-android")
 }

@@ -51,8 +51,16 @@ class VehicleSignals(private val context: Context, private val sink: (CarEvent) 
         val driverZone = zones.allOccupantZones.firstOrNull { it.occupantType == CarOccupantZoneManager.OCCUPANT_TYPE_DRIVER } ?: return
         val user = zones.getUserForOccupant(driverZone)
         if (user != CarOccupantZoneManager.INVALID_USER_ID) {
-            val um = context.getSystemService(android.os.UserManager::class.java)
-            val isGuest = runCatching { um.isGuestUser }.getOrDefault(false)
+            // isGuestUser() answers for the context's user, so ask through a context for the driver's user.
+            // Both calls are system APIs (reflection allowed); isGuestUser(int) is blocked hidden API on targetSdk > 30.
+            val isGuest = runCatching {
+                val handle = android.os.UserHandle.getUserHandleForUid(user * PER_USER_UID_RANGE)
+                val userCtx = Context::class.java.getMethod("createContextAsUser", android.os.UserHandle::class.java, Int::class.javaPrimitiveType)
+                    .invoke(context, handle, 0) as Context
+                val um = userCtx.getSystemService(android.os.UserManager::class.java)
+                android.os.UserManager::class.java.getMethod("isGuestUser").invoke(um) as Boolean
+            }.onFailure { Log.w(CarMemoryService.TAG, "guest check failed for user $user; treating as known profile", it) }
+                .getOrDefault(false)
             if (!isGuest) sink(OccupantObserved(LocalDateTime.now(), IdentitySignal("seat_profile", "user:$user")))
         }
     }
@@ -81,5 +89,6 @@ class VehicleSignals(private val context: Context, private val sink: (CarEvent) 
     companion object {
         // VehicleAreaSeat.ROW_1_LEFT | ROW_1_CENTER; adjust for right-hand-drive markets via policy if needed.
         const val DRIVER_HVAC_AREAS = 0x0001 or 0x0002
+        private const val PER_USER_UID_RANGE = 100_000 // UserHandle.PER_USER_RANGE
     }
 }

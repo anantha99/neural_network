@@ -76,4 +76,30 @@ class CoreTest {
         val token = pkt.masked.entries.first { it.value == "Oakwood Primary" }.key
         assertEquals("Go to Oakwood Primary", pkt.unmask("Go to $token"))
     }
+
+    @Test fun `only settings become set proposals and reconcile sees the subject`() {
+        val prompts = mutableListOf<String>()
+        fun cand(cat: String, key: String, value: String) =
+            """{"candidates":[{"category":"$cat","key":"$key","value":"$value","condition":null,"kind":"stated","about":"person"}]}"""
+        val llm = object : LlmClient {
+            override fun completeJson(system: String, user: String, schemaJson: String): String { prompts += user; return when {
+                user.startsWith("NEW:") -> """{"op":"update","target_index":0}"""
+                "country" in user -> cand("media", "disliked_genre", "country")
+                "Tuesdays" in user -> cand("note", "leo_piano_lesson", "Tuesdays at 5")
+                "Wednesdays" in user -> cand("note", "leo_piano_lesson_schedule", "Wednesdays at 5")
+                else -> cand("climate", "cabin_temp", "22")
+            } }
+        }
+        val mem = CarMemory(JdbcSqlDriver(), llm = llm).also { it.enroll("asha", "Asha", listOf("key_fob" to "fob-a")) }
+        val t = LocalDateTime.of(2026, 11, 2, 7, 30)
+        mem.ignitionOn(listOf(IdentitySignal("key_fob", "fob-a")), t)
+        for (u in listOf("I like it at 22", "I can't stand country music", "Leo's piano is Tuesdays at 5", "Leo's piano moved to Wednesdays at 5")) mem.hear(u, now = t)
+        val props = mem.proactive(t, "home")
+        assertTrue(props.any { it.action["key"] == JsonPrimitive("cabin_temp") }, "$props")
+        assertTrue(props.none { it.action["key"] == JsonPrimitive("disliked_genre") }, "$props")
+        val reconcile = prompts.last { it.startsWith("NEW:") }
+        assertTrue("leo piano lesson schedule: Wednesdays at 5" in reconcile && "leo piano lesson: Tuesdays at 5" in reconcile, reconcile)
+        val notes = mem.store.facts(listOf("asha"), "note").filter { it.isCurrent }
+        assertEquals(listOf("Wednesdays at 5"), notes.map { it.value.render() })
+    }
 }

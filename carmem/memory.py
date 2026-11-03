@@ -10,7 +10,7 @@ from __future__ import annotations
 from datetime import datetime
 from typing import Any, Callable, Iterable, Optional
 
-from .consolidation import Consolidator, norm_place
+from .consolidation import SETTING_CATEGORIES, Consolidator, norm_place
 from .context import ContextBuilder, ContextPacket
 from .extraction import Candidate, LLMExtractor, RuleExtractor, detect_intent
 from .identity import IdentityResolver
@@ -33,8 +33,6 @@ from .models import (
 from .policy import Policy
 from .retrieval import Embedder, HashingEmbedder, keyword_overlap
 from .store import Store
-
-SETTING_CATEGORIES = {"cabin_temp": "climate", "seat_position": "seat", "media": "media", "fan": "climate"}
 
 
 class _Session:

@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Push to /system/etc/permissions/ with the APK in /system/priv-app/CarMemDevHost/. -->
+<permissions>
+    <privapp-permissions package="carmem.devhost">
+        <permission name="android.car.permission.CAR_POWERTRAIN" />
+        <permission name="android.car.permission.CONTROL_CAR_CLIMATE" />
+        <permission name="android.car.permission.CONTROL_CAR_SEATS" />
+        <permission name="android.car.permission.CAR_SPEED" />
+        <permission name="android.permission.INTERACT_ACROSS_USERS" />
+        <permission name="android.permission.QUERY_USERS" />
+        <permission name="android.permission.START_ACTIVITIES_FROM_BACKGROUND" />
+    </privapp-permissions>
+</permissions>

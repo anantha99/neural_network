@@ -22,4 +22,9 @@ interface ICarMemory {
     String snapshot(boolean forCloud);
     /** Replace the masked tokens in a cloud reply with their originals. */
     String unmask(String text);
+    /**
+     * Enroll a person with hard-signal bindings, JSON [{"kind":"seat_profile","value":"user:10"}, ...].
+     * Until someone is enrolled every driver resolves as a guest, and guests never form memory.
+     */
+    String enroll(String personId, String name, String bindingsJson);
 }

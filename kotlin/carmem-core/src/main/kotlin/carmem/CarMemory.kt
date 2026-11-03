@@ -9,7 +9,8 @@ import kotlinx.serialization.json.buildJsonObject
 import kotlinx.serialization.json.put
 import java.time.LocalDateTime
 
-private val SETTING_CATEGORIES = mapOf("cabin_temp" to "climate", "seat_position" to "seat", "media" to "media", "fan" to "climate")
+/** Cabin settings the car can observe and apply, by key. */
+internal val SETTING_CATEGORIES =mapOf("cabin_temp" to "climate", "seat_position" to "seat", "media" to "media", "fan" to "climate")
 
 private class Session(val occupancy: Occupancy, var started: LocalDateTime) {
     val pending = mutableListOf<Proposal>()

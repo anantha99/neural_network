@@ -12,7 +12,9 @@
     <uses-permission android:name="android.permission.BLUETOOTH_CONNECT" />
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE_SPECIAL_USE" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_LOCATION" />
     <uses-permission android:name="android.permission.INTERACT_ACROSS_USERS" />      <!-- occupant zone -> user -->
+    <uses-permission android:name="android.permission.QUERY_USERS" />                <!-- guest check for the driver user -->
 
     <uses-feature android:name="android.hardware.type.automotive" android:required="true" />
 
@@ -22,7 +24,7 @@
         <service
             android:name="carmem.android.CarMemoryService"
             android:exported="true"
-            android:foregroundServiceType="specialUse"
+            android:foregroundServiceType="location|specialUse"
             android:permission="carmem.permission.BIND_MEMORY">
             <property android:name="android.app.PROPERTY_SPECIAL_USE_FGS_SUBTYPE" android:value="in-car assistant memory" />
             <intent-filter>

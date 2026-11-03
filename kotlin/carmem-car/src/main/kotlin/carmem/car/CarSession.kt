@@ -38,6 +38,10 @@ class CarSession(
     asyncExtraction: Boolean = false,
     runOnMemoryThread: (() -> Unit) -> Unit = { it() },
     private val onDriver: (Occupancy, Person?) -> Unit = { _, _ -> },
+    /** Called on the memory thread after a deferred extraction is applied: (episode id, what was stored). */
+    onExtracted: (Long, kotlinx.serialization.json.JsonArray) -> Unit = { _, _ -> },
+    onExtractionError: (Long, Throwable) -> Unit = { _, _ -> },
+    /** Last so a trailing lambda is still the proposals callback. */
     private val onProposals: (List<Proposal>) -> Unit = {},
 ) : AutoCloseable {
     private val pendingSignals = mutableListOf<OccupantObserved>()
@@ -49,7 +53,7 @@ class CarSession(
     val segmenter = TripSegmenter(places) { trip -> onTrip(trip) }
 
     /** Background extraction, when [asyncExtraction] is on. */
-    val extraction: ExtractionQueue? = if (asyncExtraction) ExtractionQueue(memory, runOnMemoryThread) else null
+    val extraction: ExtractionQueue? = if (asyncExtraction) ExtractionQueue(memory, runOnMemoryThread, onExtracted, onExtractionError) else null
 
     init {
         places.addRenameListener { _, old, new -> memory.renamePlace(null, old, new, eventTs ?: memory.clock()) }

@@ -23,7 +23,12 @@ import java.time.LocalDateTime
  * preference; the driver zone's Android user is the strongest identity signal.
  * All three properties are privileged on AAOS (see the manifest).
  */
-class VehicleSignals(private val context: Context, private val sink: (CarEvent) -> Unit) {
+class VehicleSignals(
+    private val context: Context,
+    private val sink: (CarEvent) -> Unit,
+    /** Timestamp source: the service passes the memory's (demo) clock so platform events agree with it. */
+    private val clock: () -> LocalDateTime = { LocalDateTime.now() },
+) {
     private var car: Car? = null
     private var props: CarPropertyManager? = null
     private var lastIgnitionOn: Boolean? = null
@@ -61,13 +66,13 @@ class VehicleSignals(private val context: Context, private val sink: (CarEvent) 
                 android.os.UserManager::class.java.getMethod("isGuestUser").invoke(um) as Boolean
             }.onFailure { Log.w(CarMemoryService.TAG, "guest check failed for user $user; treating as known profile", it) }
                 .getOrDefault(false)
-            if (!isGuest) sink(OccupantObserved(LocalDateTime.now(), IdentitySignal("seat_profile", "user:$user")))
+            if (!isGuest) sink(OccupantObserved(clock(), IdentitySignal("seat_profile", "user:$user")))
         }
     }
 
     private val callback = object : CarPropertyManager.CarPropertyEventCallback {
         override fun onChangeEvent(value: CarPropertyValue<*>) {
-            val now = LocalDateTime.now()
+            val now = clock()
             when (value.propertyId) {
                 VehiclePropertyIds.IGNITION_STATE -> {
                     val on = (value.value as Int) in setOf(VehicleIgnitionState.ON, VehicleIgnitionState.START)

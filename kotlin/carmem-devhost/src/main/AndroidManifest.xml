@@ -12,6 +12,21 @@
     <application
         android:name="carmem.devhost.DevHostApp"
         android:label="carmem dev host">
+        <!-- The demo screen (transcript / proposals / what the car knows). Views are built in code. -->
+        <activity
+            android:name="carmem.devhost.DemoActivity"
+            android:exported="true"
+            android:label="carmem demo"
+            android:configChanges="orientation|screenSize|screenLayout|smallestScreenSize|keyboardHidden|keyboard|uiMode"
+            android:windowSoftInputMode="adjustResize">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+            <!-- AAOS blocks non-optimized activities while the car is moving; the demo stays usable during a simulated drive.
+                 VERIFY: needed only if UX restrictions kick in on the emulator; harmless otherwise. -->
+            <meta-data android:name="distractionOptimized" android:value="true" />
+        </activity>
         <!-- adb: am broadcast -a carmem.debug.PROBE -n carmem.devhost/.ProbeReceiver with string extras op and arg -->
         <receiver android:name="carmem.devhost.ProbeReceiver" android:exported="true">
             <intent-filter>

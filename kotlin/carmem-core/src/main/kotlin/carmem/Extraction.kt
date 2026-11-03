@@ -66,7 +66,7 @@ class RuleExtractor : Extractor {
         sensor.find(t)?.let { out += Candidate("vehicle_fault", "${it.groupValues[1].lowercase()}_${it.groupValues[2].lowercase()}_sensor", JsonPrimitive(it.groupValues[3].clean()), about = "vehicle") }
         if (tyre.containsMatchIn(t)) out += Candidate("vehicle_fault", "tyre_pressure", JsonPrimitive("warning reported"), about = "vehicle")
         nameCandidate(t)?.let { out += it }
-        if (out.isEmpty()) remember.find(t)?.let { val n = it.groupValues[1].clean(); out += Candidate("note", slug(n), JsonPrimitive(n)) }
+        if (out.isEmpty() && '?' !in t) remember.find(t)?.let { val n = it.groupValues[1].clean(); out += Candidate("note", slug(n), JsonPrimitive(n)) }
         return out
     }
 }

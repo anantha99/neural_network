@@ -66,6 +66,11 @@ class CoreTest {
         assertEquals(1, mem.store.facts(listOf("asha"), "note", states = listOf(State.CONFIRMED)).size)
     }
 
+    @Test fun `questions are not stored as notes`() {
+        assertTrue(RuleExtractor().extract("what should I remember about the school run?").isEmpty())
+        assertEquals("note", RuleExtractor().extract("remember that the gate code is 4471").single().category)
+    }
+
     @Test fun `cloud packet masks and unmasks`() {
         val mem = make(); val t = LocalDateTime.of(2026, 9, 7, 8, 0)
         mem.ignitionOn(listOf(IdentitySignal("key_fob", "fob-a")), t)

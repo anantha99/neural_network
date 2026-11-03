@@ -174,3 +174,9 @@ def test_recent_episodes_outrank_old_ones_at_equal_relevance():
     mem.record_trip(Trip(t2, t2 + timedelta(minutes=30), "home", "Airport Terminal 2", ["asha"]))
     out = mem.recall("airport", now=t2 + timedelta(hours=1))
     assert out["episodes"][0]["ts"].startswith((t2).strftime("%Y-%m-%d"))
+
+
+def test_questions_are_not_stored_as_notes():
+    from carmem.extraction import RuleExtractor
+    assert RuleExtractor().extract("what should I remember about the school run?") == []
+    assert RuleExtractor().extract("remember that the gate code is 4471")[0].category == "note"

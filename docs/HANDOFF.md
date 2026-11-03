@@ -149,3 +149,59 @@ crash-loop at boot under host load (a cold restart fixed it).
 - **Background extraction.** `hear(..., extract = false)` logs and handles intents at once;
   `CarSession(asyncExtraction = true, runOnMemoryThread = { handler.post(it) })` runs the model on an
   `ExtractionQueue` thread and applies on the memory thread. Not yet wired into `carmem-android`.
+
+## Changed in this pass (Android, 2026-11-03)
+
+Written without an Android SDK, so `carmem-android` and `carmem-devhost` have **not been compiled**.
+`Assistant.kt` and `GeminiLlmClient.kt` were compiled on the JVM against the real core with a stub
+`android.util.Log`, and a JVM scenario (seed, Mon 07:38, Asha in, no, why 21 degrees, forget the gym,
+a cloud question through a fake `ChatModel`, a guest wiped at ignition off) behaved as the demo needs.
+
+- **Service.** `CarMemory` runs on a `DemoClock` (field `clock`); every binder call and the platform adapters
+  (`VehicleSignals`, `LocationFeed`, `PhoneSignal`, new `clock` constructor parameter) use it instead of
+  `LocalDateTime.now()`. `CarSession(asyncExtraction = true, runOnMemoryThread = handler.post, onDriver = DriverBus)`;
+  the extraction queue is closed in `onDestroy`. `hear` over AIDL no longer runs the model on the worker thread:
+  it logs, handles intents and queues extraction.
+- **AIDL additions:** `seed(fixtureJson)`, `setClock(isoOrEmpty)`, `injectEvent(eventJson)`, `chat(text, destination)`,
+  `whoami()`. `seed` skips (returns `already_seeded`) when every fixture person exists, because a second replay
+  double-counts evidence. `whoami` also returns `now` and `guest_scopes_remaining` (shown after ignition off).
+- **Broadcasts:** `DriverBus` (`carmem.android.DRIVER`: `driver_id`, `name`, `is_guest`) and `MemoryBus`
+  (`carmem.android.MEMORY_CHANGED`, after background extraction is applied) next to `ProposalBus`.
+- **Assistant** (`carmem-android/Assistant.kt`): `ChatModel` / `GeminiChatModel` (Gemini function calling, tools from
+  `MemoryTools.neutral` with `additionalProperties` stripped, thought parts skipped, model turns echoed verbatim so
+  thought signatures go back). Rule intents answer offline; "why do you think I like 21 degrees?" explains the best
+  keyword match for its subject (with small synonyms: degrees/temperature -> cabin temp), not only the last stated
+  fact; "forget X" for something already tombstoned says so. Cloud: masked packet, the driver's text and tool
+  results masked by substitution from `ContextPacket.masked`, tool args un-masked before they run, reply un-masked.
+  `memory_remember` from the model logs and defers like `hear`. No key: answers from the packet. `geminiPost` is now
+  a shared `internal` function in `GeminiLlmClient.kt`.
+- **Dev host:** `DemoActivity` (launcher "carmem demo"), code-built three-pane screen with demo controls; probe ops
+  `seed`, `clock`, `event`, `chat`, `whoami`; the fixture is packaged from `../../fixtures` as assets. Demo steps
+  are in `kotlin/carmem-devhost/README.md`.
+
+`// VERIFY:` left in the code:
+
+- `Assistant.kt` (above `GeminiChatModel`): that `gemma-4-26b-a4b-it` accepts `tools` and returns `functionCall`
+  parts on the Gemini API. If not, chat falls back to a packet answer with the error in `note`; put a Gemini model
+  id on line 2 of `gemini.key`.
+- `Assistant.kt` (`chat` body): lowercase JSON-schema `type` values in `functionDeclarations.parameters`; uppercase
+  them if a 400 names the schema.
+- `Assistant.kt` (`content`): function responses sent in a `"user"` turn (older docs used role `"function"`).
+- `carmem-devhost/build.gradle.kts`: `assets.srcDir("../../fixtures")` resolves to the repo's `fixtures/`.
+- `carmem-devhost/AndroidManifest.xml`: `distractionOptimized` meta-data on `DemoActivity`.
+- `DemoActivity.kt` (`register`): `registerReceiver(r, f, Context.RECEIVER_NOT_EXPORTED)` receives the same-app broadcasts.
+
+Known limits and suggestions outside these modules:
+
+- The fixture already forgets the gym (week 5), so the demo's beat 5 forgets the office routine instead ("forget that I go to the office"), which the fixture still has.
+  For a live forget, the fixture would need the gym routine alive at the end (Python `bench/export_fixtures.py`).
+- `CarSession` builds its `ExtractionQueue` without `onApplied`/`onError`, so the service learns about applied
+  extractions only by wrapping `runOnMemoryThread` (hence `MemoryBus` carries no payload). An `onExtracted`
+  parameter on `CarSession` would let the UI say what was stored.
+- The rule extractor's `remember (that)? (.+)` stores questions such as "what should I remember about X?" as notes.
+- Cloud masking only covers values of confirmed facts in masked categories; a sensitive phrase that appears in an
+  episode in a different form than the fact's value is not caught.
+- `FixtureReplay` drives `CarMemory` directly, so `seed` closes an open session through `CarSession` first; the
+  service keeps its own policy (the fixture's equals the default apart from Kotlin-only keys).
+- An unpinned clock plus the emulator's own `seat_profile user:10` signal (emitted at car connect) within 10 minutes
+  of "Guest arrives" would auto-enroll "Driver 10" instead of a guest; pin the clock first.

@@ -115,7 +115,7 @@ class RuleExtractor:
             out.append(Candidate("vehicle_fault", key, m.group(3).strip(" ."), kind="stated", about="vehicle"))
         if self._TYRE.search(t):
             out.append(Candidate("vehicle_fault", "tyre_pressure", "warning reported", kind="stated", about="vehicle"))
-        if not out and (m := self._REMEMBER.search(t)):
+        if not out and "?" not in t and (m := self._REMEMBER.search(t)):
             note = m.group(1).strip(" .")
             out.append(Candidate("note", _slug(note), note, kind="stated"))
         return out

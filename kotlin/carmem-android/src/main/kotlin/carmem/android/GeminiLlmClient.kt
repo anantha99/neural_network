@@ -31,7 +31,7 @@ class GeminiLlmClient(private val apiKey: String, private val model: String = DE
         }
         val started = System.currentTimeMillis()
         try {
-            val res = post(body.toString())
+            val res = geminiPost(apiKey, model, body.toString())
             // Gemma 4 thinks first; the answer is the non-thought part.
             val parts = Json.parseToJsonElement(res).jsonObject["candidates"]!!.jsonArray[0].jsonObject["content"]!!.jsonObject["parts"]!!.jsonArray
             val answer = parts.map { it.jsonObject }.filter { it["thought"]?.jsonPrimitive?.content != "true" }
@@ -44,32 +44,35 @@ class GeminiLlmClient(private val apiKey: String, private val model: String = DE
         }
     }
 
-    /** The free tier returns sporadic 500s and 429s; retry those twice with a short backoff. */
-    private fun post(body: String): String {
-        for (attempt in 0..RETRIES) {
-            val conn = URL("https://generativelanguage.googleapis.com/v1beta/models/$model:generateContent").openConnection() as HttpURLConnection
-            try {
-                conn.requestMethod = "POST"; conn.doOutput = true
-                conn.connectTimeout = 20_000; conn.readTimeout = 120_000
-                conn.setRequestProperty("x-goog-api-key", apiKey); conn.setRequestProperty("Content-Type", "application/json")
-                conn.outputStream.use { it.write(body.toByteArray()) }
-                val code = conn.responseCode
-                if (code == 200) return conn.inputStream.bufferedReader().readText()
-                val err = "HTTP $code: ${conn.errorStream?.bufferedReader()?.readText()?.take(300)}"
-                if (code != 429 && code < 500 || attempt == RETRIES) error(err)
-                Log.w(CarMemoryService.TAG, "llm $model $err; retrying")
-            } finally {
-                conn.disconnect()
-            }
-            Thread.sleep(1_000L * (attempt + 1))
-        }
-        error("unreachable")
-    }
-
     companion object {
         const val DEFAULT_MODEL = "gemma-4-26b-a4b-it"
-        private const val RETRIES = 2
         /** API key file in noBackupFilesDir; optional second line names the model. */
         const val KEY_FILE = "gemini.key"
     }
+}
+
+/**
+ * POST a generateContent request to the Gemini API and return the response body. Shared by
+ * [GeminiLlmClient] (extraction) and [GeminiChatModel] (the assistant loop). Blocks: never call on the
+ * main thread. The free tier returns sporadic 500s and 429s; retry those [retries] times with a short backoff.
+ */
+internal fun geminiPost(apiKey: String, model: String, body: String, retries: Int = 2): String {
+    for (attempt in 0..retries) {
+        val conn = URL("https://generativelanguage.googleapis.com/v1beta/models/$model:generateContent").openConnection() as HttpURLConnection
+        try {
+            conn.requestMethod = "POST"; conn.doOutput = true
+            conn.connectTimeout = 20_000; conn.readTimeout = 120_000
+            conn.setRequestProperty("x-goog-api-key", apiKey); conn.setRequestProperty("Content-Type", "application/json")
+            conn.outputStream.use { it.write(body.toByteArray()) }
+            val code = conn.responseCode
+            if (code == 200) return conn.inputStream.bufferedReader().readText()
+            val err = "HTTP $code: ${conn.errorStream?.bufferedReader()?.readText()?.take(300)}"
+            if (code != 429 && code < 500 || attempt == retries) error(err)
+            Log.w(CarMemoryService.TAG, "llm $model $err; retrying")
+        } finally {
+            conn.disconnect()
+        }
+        Thread.sleep(1_000L * (attempt + 1))
+    }
+    error("unreachable")
 }

@@ -17,13 +17,13 @@ import java.time.LocalDateTime
  * Pairing happens once per person through the normal Bluetooth settings; the
  * address is bound to the person with CarMemory.bind("phone", address, personId).
  */
-class PhoneSignal(private val context: Context, private val sink: (CarEvent) -> Unit) {
+class PhoneSignal(private val context: Context, private val sink: (CarEvent) -> Unit, private val clock: () -> LocalDateTime = { LocalDateTime.now() }) {
     private val receiver = object : BroadcastReceiver() {
         override fun onReceive(ctx: Context, intent: Intent) {
             if (intent.action != BluetoothDevice.ACTION_ACL_CONNECTED) return
             val device: BluetoothDevice = intent.getParcelableExtra(BluetoothDevice.EXTRA_DEVICE, BluetoothDevice::class.java) ?: return
             if (device.bondState == BluetoothDevice.BOND_BONDED)
-                sink(OccupantObserved(LocalDateTime.now(), IdentitySignal("phone", device.address)))
+                sink(OccupantObserved(clock(), IdentitySignal("phone", device.address)))
         }
     }
 
@@ -31,7 +31,7 @@ class PhoneSignal(private val context: Context, private val sink: (CarEvent) -> 
         context.registerReceiver(receiver, IntentFilter(BluetoothDevice.ACTION_ACL_CONNECTED), Context.RECEIVER_EXPORTED)
         // phones already connected when the service starts
         val adapter: BluetoothAdapter? = context.getSystemService(BluetoothManager::class.java)?.adapter
-        runCatching { adapter?.bondedDevices?.forEach { d -> if (d.isConnectedCompat()) sink(OccupantObserved(LocalDateTime.now(), IdentitySignal("phone", d.address))) } }
+        runCatching { adapter?.bondedDevices?.forEach { d -> if (d.isConnectedCompat()) sink(OccupantObserved(clock(), IdentitySignal("phone", d.address))) } }
     }
 
     fun stop() = runCatching { context.unregisterReceiver(receiver) }.let { }

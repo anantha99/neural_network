@@ -8,8 +8,14 @@ import kotlin.concurrent.thread
 
 /**
  * adb entry point to the ICarMemory surface. Results go to logcat under tag carmem-probe.
- *   op = proactive | recall | hear | context | snapshot | explain | forget | enroll, arg = the op's argument
+ *   op = proactive | recall | hear | context | snapshot | explain | forget | enroll | seed | clock | event | chat | whoami,
+ *   arg = the op's argument
  *   enroll: arg = person id, extras name and bindings (JSON array of {"kind","value"})
+ *   seed:   replays assets/household_seed7_w8.json (or the asset named by arg) into the memory
+ *   clock:  arg = ISO local time to pin ("2026-10-12T07:38:00"), or "reset" / empty for the wall clock
+ *   event:  arg = CarEvent JSON, e.g. {"type":"occupant","kind":"key_fob","value":"fob-asha"} (see ICarMemory.injectEvent)
+ *   chat:   arg = what the driver says, extra dest = local (default) | cloud
+ *   whoami: the current driver
  */
 class ProbeReceiver : BroadcastReceiver() {
     override fun onReceive(context: Context, intent: Intent) {
@@ -31,6 +37,11 @@ class ProbeReceiver : BroadcastReceiver() {
                     "explain" -> m.explain(arg ?: "")
                     "forget" -> m.forget(arg ?: "")
                     "enroll" -> m.enroll(arg ?: "", intent.getStringExtra("name") ?: arg ?: "", intent.getStringExtra("bindings") ?: "[]")
+                    "seed" -> m.seed(context.assets.open(arg?.takeIf { it.isNotBlank() } ?: FIXTURE_ASSET).bufferedReader().use { it.readText() })
+                    "clock" -> m.setClock(if (arg == null || arg == "reset") "" else arg)
+                    "event" -> m.injectEvent(arg ?: "{}")
+                    "chat" -> m.chat(arg ?: "", intent.getStringExtra("dest") ?: "local")
+                    "whoami" -> m.whoami()
                     else -> "unknown op"
                 }
                 // logcat truncates long lines; chunk so snapshots arrive whole
@@ -39,5 +50,10 @@ class ProbeReceiver : BroadcastReceiver() {
                 Log.w(DevHostApp.TAG, "$op failed", t)
             }
         }
+    }
+
+    companion object {
+        /** fixtures/household_seed7_w8.json, packaged as an asset by build.gradle.kts (assets srcDir ../../fixtures). */
+        const val FIXTURE_ASSET = "household_seed7_w8.json"
     }
 }

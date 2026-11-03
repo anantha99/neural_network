@@ -20,6 +20,13 @@ android {
 
     useLibrary("android.car")
 
+    // The demo seeds from fixtures/household_seed7_w8.json without keeping a copy here: package the repo's
+    // fixtures directory (relative to this module dir, kotlin/carmem-devhost) as assets.
+    // VERIFY: the srcDir resolves to <repo>/fixtures (the APK should contain assets/household_seed7_w8.json).
+    sourceSets {
+        getByName("main") { assets.srcDir("../../fixtures") }
+    }
+
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_17
         targetCompatibility = JavaVersion.VERSION_17

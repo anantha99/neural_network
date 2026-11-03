@@ -10,10 +10,10 @@ import carmem.car.LocationFix
 import java.time.LocalDateTime
 
 /** Platform location -> LocationFix every ~30 s / 50 m, which is all trip segmentation needs. */
-class LocationFeed(private val context: Context, private val sink: (CarEvent) -> Unit) {
+class LocationFeed(private val context: Context, private val sink: (CarEvent) -> Unit, private val clock: () -> LocalDateTime = { LocalDateTime.now() }) {
     private val lm = context.getSystemService(LocationManager::class.java)
     private val listener = LocationListener { loc: Location ->
-        sink(LocationFix(LocalDateTime.now(), loc.latitude, loc.longitude, if (loc.hasSpeed()) loc.speed.toDouble() else null))
+        sink(LocationFix(clock(), loc.latitude, loc.longitude, if (loc.hasSpeed()) loc.speed.toDouble() else null))
     }
 
     fun start() {

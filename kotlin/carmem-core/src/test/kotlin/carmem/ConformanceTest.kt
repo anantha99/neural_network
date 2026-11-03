@@ -1,19 +1,13 @@
 package carmem
 
 import kotlinx.serialization.json.Json
-import kotlinx.serialization.json.JsonArray
 import kotlinx.serialization.json.JsonObject
-import kotlinx.serialization.json.JsonPrimitive
 import kotlinx.serialization.json.boolean
-import kotlinx.serialization.json.booleanOrNull
-import kotlinx.serialization.json.double
 import kotlinx.serialization.json.int
-import kotlinx.serialization.json.doubleOrNull
 import kotlinx.serialization.json.jsonArray
 import kotlinx.serialization.json.jsonObject
 import kotlinx.serialization.json.jsonPrimitive
 import java.io.File
-import java.time.LocalDateTime
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertTrue
@@ -26,64 +20,18 @@ class ConformanceTest {
     private val fixturesDir = File(System.getProperty("carmem.fixtures") ?: "../fixtures")
     private val json = Json { ignoreUnknownKeys = true }
 
-    private data class Logged(val ts: String, val scope: String, val dest: String, val tier: String, val correct: Boolean, val week: Int)
-
-    private fun signalsFor(fx: JsonObject, driver: String): List<IdentitySignal> {
-        if (driver == "guest") { val g = fx["guest_signal"]!!.jsonObject; return listOf(IdentitySignal(g["kind"]!!.jsonPrimitive.content, g["value"]!!.jsonPrimitive.content, g["confidence"]!!.jsonPrimitive.double)) }
-        val p = fx["persons"]!!.jsonArray.map { it.jsonObject }.first { it["id"]!!.jsonPrimitive.content == driver }
-        return p["signals"]!!.jsonArray.map { s -> IdentitySignal(s.jsonArray[0].jsonPrimitive.content, s.jsonArray[1].jsonPrimitive.content) }
-    }
-
-    private fun tripOf(o: JsonObject) = Trip(
-        parseIso(o["start"]!!.jsonPrimitive.content), parseIso(o["end"]!!.jsonPrimitive.content),
-        o["origin"]!!.jsonPrimitive.content, o["destination"]!!.jsonPrimitive.content,
-        o["occupants"]?.jsonArray?.map { it.jsonPrimitive.content } ?: emptyList(),
-        o["settings"]?.jsonObject?.toMap() ?: emptyMap(), o["route"]?.jsonObject?.toMap() ?: emptyMap(),
-        o["distance_km"]?.jsonPrimitive?.doubleOrNull ?: 0.0,
-    )
+    private fun signalsFor(fx: JsonObject, driver: String) = FixtureReplay.signalsFor(fx, driver)
 
     @Test
     fun `kotlin core reproduces the python reference on the household fixture`() {
         val fx = json.parseToJsonElement(File(fixturesDir, "household_seed7_w8.json").readText()).jsonObject
         val policy = Policy.fromJson(fx["policy"].toString())
         val mem = CarMemory(JdbcSqlDriver(), policy)
-        for (p in fx["persons"]!!.jsonArray.map { it.jsonObject })
-            mem.enroll(p["id"]!!.jsonPrimitive.content, p["name"]!!.jsonPrimitive.content, p["signals"]!!.jsonArray.map { it.jsonArray[0].jsonPrimitive.content to it.jsonArray[1].jsonPrimitive.content })
-
-        val events = fx["events"]!!.jsonArray.map { it.jsonObject }
-        val logged = mutableListOf<Logged>()
-        val noSaid = mutableMapOf<String, Int>()
-        val forgetDone = mutableMapOf<String, Int>()  // dest -> week
-        var current: Pair<String, java.time.LocalDate>? = null
-        var lastTs: LocalDateTime = parseIso(events.first()["ts"]!!.jsonPrimitive.content)
-
-        for (ev in events) {
-            val ts = parseIso(ev["ts"]!!.jsonPrimitive.content); lastTs = ts
-            val type = ev["type"]!!.jsonPrimitive.content; val driver = ev["driver"]!!.jsonPrimitive.content
-            val week = ev["week"]!!.jsonPrimitive.int
-            if (type == "sensor") { val pl = ev["payload"]!!.jsonObject; mem.recordVehicleEvent(pl["key"]!!.jsonPrimitive.content, pl["value"]!!, now = ts); continue }
-            val key = driver to ts.toLocalDate()
-            if (key != current) {
-                if (current != null) mem.ignitionOff(ts.minusMinutes(1))
-                mem.ignitionOn(signalsFor(fx, driver), ts.minusMinutes(5)); current = key
-            }
-            if (type == "say") { mem.hear(ev["text"]!!.jsonPrimitive.content, now = ts); continue }
-            val trip = tripOf(ev["trip"]!!.jsonObject)
-            val reject = ev["reject_if_proposed"]?.jsonArray?.map { it.jsonPrimitive.content } ?: emptyList()
-            val forget = ev["forget_if_proposed"]?.jsonArray?.map { it.jsonPrimitive.content } ?: emptyList()
-            for (p in mem.proactive(trip.start.minusMinutes(2), trip.origin)) {
-                if (p.kind != "routine") continue
-                val dest = p.action["destination"]!!.render()
-                logged += Logged(iso(trip.start), p.scope, dest, p.tier.wire, normPlace(dest) == normPlace(trip.destination), week)
-                if (reject.any { normPlace(it) == normPlace(dest) }) { mem.hear("no", now = trip.start.minusMinutes(1)); noSaid[dest] = (noSaid[dest] ?: 0) + 1 }
-                if (forget.any { normPlace(it) in normPlace(dest) }) { mem.hear("forget that", now = trip.start.minusMinutes(1)); forgetDone[dest] = week }
-            }
-            if (forget.isNotEmpty() && forgetDone.keys.none { k -> forget.any { normPlace(it) in normPlace(k) } }) {
-                mem.hear("forget that I go to the ${forget[0]}", now = trip.start.minusMinutes(1)); forgetDone[forget[0]] = week
-            }
-            mem.recordTrip(trip, trip.end)
-        }
-        mem.ignitionOff(lastTs.plusHours(1))
+        val result = FixtureReplay(mem).replay(fx)
+        val logged = result.proposals
+        val noSaid = result.noSaid
+        val forgetDone = result.forgetDone  // dest -> week
+        val lastTs = result.lastTs
 
         val expected = fx["expected"]!!.jsonObject
 

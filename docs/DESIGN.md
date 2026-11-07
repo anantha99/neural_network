@@ -145,8 +145,8 @@ scores:
 * LongMemEval-style QA on the rendered context, with forbidden strings for leakage
 * cloud masking
 
-The trips are all synthetic today. `docs/DATASET_USECASES.md` plans a real-data track
-(VED, NHTS) with per-event provenance.
+`bench/real/` replays real VED trips with per-event provenance and scores routines on
+held-out weeks; see `docs/DATASET_USECASES.md` and `docs/REAL_BENCH_RESULTS.md`.
 
 ## Implementations
 The Python package is the reference. `kotlin/carmem-core` is a line-for-line port for the

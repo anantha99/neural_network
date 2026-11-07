@@ -1,6 +1,7 @@
 # Real-data benchmark: use cases and dataset plan
 
-Status: plan. Nothing in this document is built yet.
+Status: first version built in `bench/real/`; results in `docs/REAL_BENCH_RESULTS.md`.
+See "As built" at the end for where the build departs from this plan.
 
 ## Why
 
@@ -197,3 +198,31 @@ cases have qualifying cars.
 * MOBIS: ETH Zurich IVT, https://www.research-collection.ethz.ch/handle/20.500.11850/498317
 * German Mobility Panel: https://mobilitaetspanel.ifv.kit.edu/english/survey.php
 * AutoVis (no public in-car interaction dataset): arXiv:2302.10531
+
+## As built
+
+Code: `bench/real/` (`ved.py` summarise, `places.py` places and labels, `scenarios.py`
+selectors and overlays, `run_real.py` replay and scoring, `oracle.py` learnability checks for
+use cases carmem cannot learn yet, `export.py`, `report.py`). Data: `data/ved/trips.csv.gz`
+(32,552 trips, 384 cars). Fixtures: `fixtures/real/`.
+
+Where the build departs from the plan, and why:
+
+* **VED's clock is UTC.** Read as local time the busiest hour is 9 pm; converted to
+  America/Detroit the peaks are 7-8 am and 4-5 pm. All times are converted.
+* **Place radius is 500 m, not 150 m.** Fogging puts the end of one trip a median ~1.8 km
+  from the start of the next. 1,000 m merges Ann Arbor into ~60 neighbourhoods; 500 m gives
+  156 places. A parked car keeps its place: a trip starting within 2.5 km and 18 h of the
+  last trip's end starts where that trip ended.
+* **VED logs only part of each car's driving.** The median car has 2-3 logged trips a week.
+  Solo scenarios use the 74 cars with >= 150 trips over >= 20 active weeks. Held-out checks
+  count only weekdays on which the car was logged.
+* **Climate and battery columns exist only for the 28 EV/PHEV cars** (heater for 14);
+  outside temperature for 247 cars. U17, U18 and U30 are therefore measured on those cars.
+* **NHTS was not reachable** from the build environment, so the U9 swap rate is a 10%
+  assumption, recorded in every household's metadata.
+* **Traps fire on real proposals.** U12 ("no") and U13 ("forget that") are planted after a
+  dry run, on the routine carmem proposed most after 40% of the window.
+* **Use cases carmem cannot learn yet** (U17, U18, U28, U30) are scored as learnability
+  checks on the real data, so there is a number to beat once the feature exists. U21, U26,
+  U27, U31, U32 and U34 are listed as not built.

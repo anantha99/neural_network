@@ -25,10 +25,13 @@ from carmem.models import Trip
 
 from .places import CarProfile, PlaceTrip
 
-# Share of a primary driver's routine trips that the other household driver makes instead.
-# ASSUMPTION until computed from NHTS 2022 (WHODROVE vs VEHID); nhts.ornl.gov was not
-# reachable from the build environment. Pass --swap-rate to change it.
-DEFAULT_SWAP_RATE = 0.10
+# Share of a primary driver's routine trips that the other household driver makes instead,
+# measured from NHTS 2022 by bench/real/nhts.py (data/nhts/sharing_2022.json). The 0.10
+# fallback is used only when that file is missing.
+from .nhts import load_swap_rate  # noqa: E402
+
+_NHTS = load_swap_rate()
+DEFAULT_SWAP_RATE, SWAP_RATE_SOURCE = _NHTS if _NHTS else (0.10, "assumption (data/nhts/sharing_2022.json missing)")
 
 SOLO_MIN_TRIPS = 150
 SOLO_MIN_WEEKS = 20
@@ -279,7 +282,7 @@ def build_household(a_veh: int, b_veh: int, trips: dict[int, list[PlaceTrip]], p
         events=evs, use_cases=ucs, gt=gt,
         meta={"vehicles": [a_veh, b_veh], "window": [lo.isoformat(), hi.isoformat()],
               "b_trips_dropped_for_overlap": dropped, "swapped_trips": len(swapped_ids), "swap_rate": swap_rate,
-              "swap_rate_source": "assumption (NHTS 2022 not yet computed)",
+              "swap_rate_source": SWAP_RATE_SOURCE if swap_rate == DEFAULT_SWAP_RATE else "set on the command line",
               "composition": "B's trips are another real car's, re-homed to A's home; place names are neutral ids"},
     )
 

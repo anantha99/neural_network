@@ -1,0 +1,32 @@
+{
+ "source": "2022 NextGen NHTS public use files v2 (FHWA, public domain), https://nhts.ornl.gov/",
+ "method": "one record per vehicle trip (the driver's own trip record,\n``DRVR_FLG=01``) in a household vehicle (``TRPHHVEH=01``) whose main driver is a household\nmember (``WHOMAIN`` 01-08), in households with at least two drivers (``DRVRCNT>=2``).\nA swap is a trip driven by someone other than ``WHOMAIN``. Estimates use the 7-day trip\nweight ``WTTRDFIN``; unweighted counts are reported next to them.",
+ "swap_rate": {
+  "all_trips": {
+   "rate": 0.1647,
+   "trips": 15214,
+   "hits": 2585,
+   "households": 3784
+  },
+  "weekday": {
+   "rate": 0.1498,
+   "trips": 11388,
+   "hits": 1731,
+   "households": 2775
+  },
+  "weekday_home_based_work": {
+   "rate": 0.0879,
+   "trips": 3106,
+   "hits": 247,
+   "households": 1350
+  }
+ },
+ "non_household_driver_rate": {
+  "rate": 0.0144,
+  "trips": 20299,
+  "hits": 232,
+  "households": 5473
+ },
+ "used_by_benchmark": "swap_rate.weekday_home_based_work",
+ "why": "U9 swaps trips of the primary driver's top weekday routine; weekday home-based-work trips are the closest NHTS equivalent of a routine trip."
+}

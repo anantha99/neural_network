@@ -223,7 +223,8 @@ def write_report(path: Path, s: dict[str, Any], results: list[dict[str, Any]], p
         "ratios are lower than a head unit that sees every trip would measure. Held-out checks only count weekdays "
         "on which the car was logged.",
         "* Trip ends are fogged to major intersections; one real place can split into neighbouring clusters.",
-        "* The U9 swap rate is an assumption (10%) until it is computed from NHTS 2022.",
+        "* The U9 swap rate comes from NHTS 2022 (`data/nhts/sharing_2022.json`): the share of weekday "
+        "home-based-work trips in a shared household car driven by someone other than its main driver.",
         "* Households are composed: B's real trips are re-homed to A's home. Overlapping trips are dropped.",
         "* Settings values (temperature, seat, media, fan) are synthetic; the outside temperature and trip times "
         "that drive them are real.",

@@ -219,8 +219,12 @@ Where the build departs from the plan, and why:
   count only weekdays on which the car was logged.
 * **Climate and battery columns exist only for the 28 EV/PHEV cars** (heater for 14);
   outside temperature for 247 cars. U17, U18 and U30 are therefore measured on those cars.
-* **NHTS was not reachable** from the build environment, so the U9 swap rate is a 10%
-  assumption, recorded in every household's metadata.
+* **U9 swap rate from NHTS 2022** (`bench/real/nhts.py`, `data/nhts/sharing_2022.json`):
+  in households with two or more drivers, someone other than a vehicle's main driver
+  (`WHOMAIN`) drives 8.8% of its weekday home-based-work trips (n=3,106), 15.0% of weekday
+  trips and 16.5% of all trips, weighted. The benchmark uses the home-based-work rate as the
+  closest match to a routine trip. A non-household member drives 1.4% of household-vehicle
+  trips, the real-world rate behind U11.
 * **Traps fire on real proposals.** U12 ("no") and U13 ("forget that") are planted after a
   dry run, on the routine carmem proposed most after 40% of the window.
 * **Use cases carmem cannot learn yet** (U17, U18, U28, U30) are scored as learnability

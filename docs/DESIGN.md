@@ -145,6 +145,9 @@ scores:
 * LongMemEval-style QA on the rendered context, with forbidden strings for leakage
 * cloud masking
 
+`bench/real/` replays real VED trips with per-event provenance and scores routines on
+held-out weeks; see `docs/DATASET_USECASES.md` and `docs/REAL_BENCH_RESULTS.md`.
+
 ## Implementations
 The Python package is the reference. `kotlin/carmem-core` is a line-for-line port for the
 head unit, verified by replaying `fixtures/household_seed7_w8.json` with the protocol in

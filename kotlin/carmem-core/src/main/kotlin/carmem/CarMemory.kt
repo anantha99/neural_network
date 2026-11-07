@@ -202,7 +202,7 @@ class CarMemory(
         val sc = scope ?: session?.occupancy?.driverId ?: return buildJsonObject { put("forgot", JsonNull); put("reason", "no scope") }
         var best: String? = null; var bestS = 0.0
         for (f in store.facts(listOf(sc))) { val s = keywordOverlap(target, "${f.category} ${f.key} ${f.value.render()} ${f.condition ?: ""}".replace('_', ' ')); if (s > bestS) { best = f.id; bestS = s } }
-        for (r in store.routines(listOf(sc))) { val s = keywordOverlap(target, "${r.destination} ${r.describe()} route trip routine go going"); if (s > bestS) { best = r.id; bestS = s } }
+        for (r in store.routines(listOf(sc))) { val s = keywordOverlap(target, "${r.destination} ${r.slotText()} route trip routine go going"); if (s > bestS) { best = r.id; bestS = s } }
         if (best == null || bestS < 0.2) return buildJsonObject { put("forgot", JsonNull); put("reason", "no matching memory"); put("query", target) }
         return consolidator.forget(best, now)
     }

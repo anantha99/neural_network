@@ -41,14 +41,14 @@ data class Policy(
     val tiers: Map<String, String> = mapOf(
         "climate" to "act", "seat" to "act", "media" to "act", "route" to "suggest", "route_prefs" to "silent",
         "contacts" to "never", "health" to "never", "home_address" to "silent", "school" to "silent",
-        "note" to "silent", "vehicle_fault" to "silent",
+        "children" to "silent", "note" to "silent", "vehicle_fault" to "silent",
     ),
     val sensitivity: Map<String, String> = mapOf(
         "health" to "sensitive", "contacts" to "sensitive", "home_address" to "sensitive", "school" to "sensitive",
-        "finance" to "sensitive", "climate" to "public", "seat" to "public", "media" to "personal", "route" to "personal",
+        "children" to "sensitive", "finance" to "sensitive", "climate" to "public", "seat" to "public", "media" to "personal", "route" to "personal",
         "route_prefs" to "personal", "note" to "personal", "vehicle_fault" to "public",
     ),
-    val mask_in_cloud_categories: List<String> = listOf("health", "contacts", "home_address", "school", "finance"),
+    val mask_in_cloud_categories: List<String> = listOf("health", "contacts", "home_address", "school", "children", "finance"),
     val mask_in_cloud_sensitivity: List<String> = listOf("sensitive"),
 ) {
     fun tierFor(category: String): Tier = Tier.of(tiers[category] ?: "silent")

@@ -90,6 +90,9 @@ class RuleExtractor:
     )
     _TYRE = re.compile(r"\b(?:tyre|tire) pressure (?:warning|light|alert)\b", re.I)
     _REMEMBER = re.compile(r"\bremember (?:that )?(.+)", re.I)
+    _CHILD = re.compile(
+        r"\b(?:child(?:ren)?|kids?|son|daughter|baby|toddler|infant|booster)\b|\bchild ?seat\b|\bcar ?seat\b", re.I
+    )
 
     def extract(self, text: str) -> list[Candidate]:
         t = text.strip()
@@ -117,7 +120,8 @@ class RuleExtractor:
             out.append(Candidate("vehicle_fault", "tyre_pressure", "warning reported", kind="stated", about="vehicle"))
         if not out and (m := self._REMEMBER.search(t)):
             note = m.group(1).strip(" .")
-            out.append(Candidate("note", _slug(note), note, kind="stated"))
+            # anything about the driver's children is sensitive: it stays on the car
+            out.append(Candidate("children" if self._CHILD.search(note) else "note", _slug(note), note, kind="stated"))
         return out
 
 
@@ -137,7 +141,7 @@ EXTRACTION_SCHEMA: dict[str, Any] = {
                         "type": "string",
                         "enum": [
                             "climate", "seat", "media", "route_prefs", "home_address", "school",
-                            "contacts", "health", "finance", "note", "vehicle_fault",
+                            "children", "contacts", "health", "finance", "note", "vehicle_fault",
                         ],
                     },
                     "key": {"type": "string"},
@@ -162,7 +166,8 @@ EXTRACTION_SYSTEM = (
     "is kind=observed; a preference such as 'I like it at 21' is kind=stated. Use a short snake_case key. "
     "Use these keys when they fit, so memories line up with what the car records: cabin_temp (climate, degrees C), "
     "fan (climate), seat_position (seat) and media (media) only for a value the car can set directly; "
-    "avoid_tolls (route_prefs, true or false), home (home_address), school_location (school), allergy (health). "
+    "avoid_tolls (route_prefs, true or false), home (home_address), school_location (school), allergy (health); anything about the speaker's children "
+    "(car seats, names, ages, pick-ups) is category children. "
     "A like or dislike gets its own key, e.g. disliked_genre. "
     "Put a condition (e.g. 'season=winter', 'daypart=morning') only when the speaker states one. "
     "Return an empty list when nothing durable was said."

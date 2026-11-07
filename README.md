@@ -104,6 +104,16 @@ Planted traps: a 50% Saturday errand that must stay below the confirm ratio, cha
 abandons and says "no" to, a valet with a voice-only identity, one person's school and
 allergy that must never surface for the other.
 
+### On real driving
+
+`python -m bench.real.run_real` replays real trips from the Vehicle Energy Dataset (383
+cars in Ann Arbor, Nov 2017 - Nov 2018, Apache-2.0) instead of generated ones: 74 cars one
+driver at a time, plus two-driver households composed from pairs of real cars with the
+utterances and traps above placed at real trip times. Every event is labelled `real`,
+`composed`, `real_context` or `synthetic`, and routines are scored on whether they come true
+in the following weeks. Use cases and method: `docs/DATASET_USECASES.md`; results:
+`docs/REAL_BENCH_RESULTS.md`.
+
 ## Kotlin core and conformance fixtures
 
 `kotlin/carmem-core` is the head-unit implementation for Android Automotive OS: pure
@@ -148,6 +158,8 @@ carmem/
   wire.py           JSON schema shared by every implementation and client
   reconcile.py      Mem0-style add / update / noop for free-text memories
 bench/              synthetic household generator, scorer, fixture exporter
+bench/real/         real-data track: VED trips, composed households, per-use-case scoring
+data/ved/           VED trip table (derived, Apache-2.0)
 fixtures/           wire-schema.json and the replayable conformance fixture
 kotlin/carmem-core  Kotlin port with conformance + unit tests (see kotlin/README.md)
 kotlin/carmem-car   trip segmentation, places, session orchestration (JVM, tested)

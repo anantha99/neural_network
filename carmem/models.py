@@ -197,11 +197,14 @@ class Routine:
     def category(self) -> str:
         return "route"
 
-    def describe(self) -> str:
+    def slot_text(self) -> str:
         days = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"]
         h, m = divmod(self.minute_of_day, 60)
+        return f"{days[self.dow]} {h:02d}:{m:02d}"
+
+    def describe(self) -> str:
         frm = f" from {self.origin}" if self.origin else ""
-        return f"{days[self.dow]} {h:02d}:{m:02d}{frm} -> {self.destination}"
+        return f"{self.slot_text()}{frm} -> {self.destination}"
 
 
 @dataclass

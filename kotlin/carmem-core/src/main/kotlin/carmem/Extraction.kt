@@ -43,6 +43,7 @@ class RuleExtractor : Extractor {
     private val sensor = Regex("""\b(?:the |my )?(left|right) (front|rear) (?:parking )?sensor (?:is|seems|keeps|has been) ([\w ]+)""", I)
     private val tyre = Regex("""\b(?:tyre|tire) pressure (?:warning|light|alert)\b""", I)
     private val remember = Regex("""\bremember (?:that )?(.+)""", I)
+    private val child = Regex("""\b(?:child(?:ren)?|kids?|son|daughter|baby|toddler|infant|booster)\b|\bchild ?seat\b|\bcar ?seat\b""", I)
 
     private fun String.clean() = trim(' ', '.')
 
@@ -58,7 +59,7 @@ class RuleExtractor : Extractor {
         allergy.find(t)?.let { out += Candidate("health", "allergy", JsonPrimitive(it.groupValues[1].clean())) }
         sensor.find(t)?.let { out += Candidate("vehicle_fault", "${it.groupValues[1].lowercase()}_${it.groupValues[2].lowercase()}_sensor", JsonPrimitive(it.groupValues[3].clean()), about = "vehicle") }
         if (tyre.containsMatchIn(t)) out += Candidate("vehicle_fault", "tyre_pressure", JsonPrimitive("warning reported"), about = "vehicle")
-        if (out.isEmpty()) remember.find(t)?.let { val n = it.groupValues[1].clean(); out += Candidate("note", slug(n), JsonPrimitive(n)) }
+        if (out.isEmpty()) remember.find(t)?.let { val n = it.groupValues[1].clean(); out += Candidate(if (child.containsMatchIn(n)) "children" else "note", slug(n), JsonPrimitive(n)) }
         return out
     }
 }
@@ -71,12 +72,13 @@ const val EXTRACTION_SYSTEM = "You extract durable memory from one utterance spo
     "A one-off command such as 'set it to 21' is kind=observed; a preference such as 'I like it at 21' is kind=stated. Use a short snake_case key. " +
     "Use these keys when they fit, so memories line up with what the car records: cabin_temp (climate, degrees C), " +
     "fan (climate), seat_position (seat) and media (media) only for a value the car can set directly; " +
-    "avoid_tolls (route_prefs, true or false), home (home_address), school_location (school), allergy (health). " +
+    "avoid_tolls (route_prefs, true or false), home (home_address), school_location (school), allergy (health); anything about the speaker's children " +
+    "(car seats, names, ages, pick-ups) is category children. " +
     "A like or dislike gets its own key, e.g. disliked_genre. " +
     "Put a condition (e.g. 'season=winter', 'daypart=morning') only when the speaker states one. Return an empty list when nothing durable was said."
 
 const val EXTRACTION_SCHEMA = """{"type":"object","properties":{"candidates":{"type":"array","items":{"type":"object","properties":{
-"category":{"type":"string","enum":["climate","seat","media","route_prefs","home_address","school","contacts","health","finance","note","vehicle_fault"]},
+"category":{"type":"string","enum":["climate","seat","media","route_prefs","home_address","school","children","contacts","health","finance","note","vehicle_fault"]},
 "key":{"type":"string"},"value":{"type":"string"},"condition":{"type":["string","null"]},"kind":{"type":"string","enum":["stated","observed"]},
 "about":{"type":"string","enum":["person","vehicle"]}},"required":["category","key","value","condition","kind","about"],"additionalProperties":false}}},
 "required":["candidates"],"additionalProperties":false}"""

@@ -139,11 +139,14 @@ data class Routine(
     var stats: Map<String, JsonElement> = emptyMap(),
 ) {
     val category get() = "route"
-    fun describe(): String {
+    fun slotText(): String {
         val days = listOf("Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun")
         val h = minuteOfDay / 60; val m = minuteOfDay % 60
+        return "${days[dow]} %02d:%02d".format(h, m)
+    }
+    fun describe(): String {
         val frm = if (origin.isNotEmpty()) " from $origin" else ""
-        return "${days[dow]} %02d:%02d%s -> %s".format(h, m, frm, destination)
+        return "${slotText()}$frm -> $destination"
     }
 }
 

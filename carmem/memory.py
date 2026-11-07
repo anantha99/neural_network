@@ -289,7 +289,9 @@ class CarMemory:
             if s > best_s:
                 best, best_s = f.id, s
         for r in self.store.routines([scope]):
-            s = keyword_overlap(target, f"{r.destination} {r.describe()} route trip routine go going")
+            # 'Forget that I go to X' names a destination. Match on the destination and the slot only:
+            # a routine that merely starts at X is not what the driver meant.
+            s = keyword_overlap(target, f"{r.destination} {r.slot_text()} route trip routine go going")
             if s > best_s:
                 best, best_s = r.id, s
         if best is None or best_s < 0.2:

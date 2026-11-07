@@ -187,13 +187,13 @@ def write_report(path: Path, s: dict[str, Any], results: list[dict[str, Any]], p
         "true when it happens on at least half of the days the car was driven on that weekday. Proposals are scored "
         "against the trip the driver actually took.",
         "",
-        "| confirm ratio | held-out precision | mean hit ratio | proposals | proposal precision | commute routines |",
-        "|---|---|---|---|---|---|",
+        "| confirm ratio | held-out precision | proposals | proposal precision | commute routines |",
+        "|---|---|---|---|---|",
     ]
     for r in s.get("sweep", []):
         ho = r["heldout"]
         lines.append(f"| {r['routine_confirm_min_ratio']} | {_p(ho, n='evaluated')} | "
-                     f"{ho.get('mean_hit_ratio', '-')} | {r['proposals']['n']} | {_p(r['proposals'])} | "
+                     f"{r['proposals']['n']} | {_p(r['proposals'])} | "
                      f"{r['commute_confirmed']}/{r['cars_with_work']} |")
     lines += [
         "",

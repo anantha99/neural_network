@@ -35,7 +35,7 @@ Default policy (confirm ratio 0.7) and calibrated (confirm ratio 0.5).
 | U1 | Weekday commute | real | 7/43 cars with a work place got a commute routine; held-out 0.38 (n=24) | 12/43; held-out 0.40 (n=81) |
 | U2 | Chained stops | real | 112 legs; proposal precision n/a | n/a |
 | U3 | Low-frequency weekly | real | held-out 0.30 (n=87) | 0.32 (n=270) |
-| U4 | Irregular errands not promoted | real | 0 of 390 irregular places promoted | 0 of 390 |
+| U4 | Irregular errands not promoted | real | 0 of 391 irregular places promoted | 0 of 391 |
 | U5 | Routine stops | real | 80 routines stopped; 3 proposals after the stop (max 35 days) | 180 stopped; 53 proposals after |
 | U6 | Holidays / winter break | real | break days 1.00 (n=1) vs other 0.95 (n=64) | 0.33 (n=3) vs 0.84 (n=263) |
 | U7 | Return after >= 14 days | real | 121 gaps; proposals in 14 days after n/a | 1.00 (n=5) |
@@ -44,13 +44,13 @@ Default policy (confirm ratio 0.7) and calibrated (confirm ratio 0.5).
 | U10 | Cross-person Q&A leakage | composed + synthetic | QA 18/18 | 18/18 |
 | U11 | Guest / valet wiped | synthetic on real route | residue 0 | 0 |
 | U12 | 'No' to a proposal | real proposal + synthetic reply | trap never fired: no routine of B's was proposed (6 households) | trap never fired: no routine of B's was proposed (6 households) |
-| U13 | 'Forget that', person keeps going | real trips + synthetic forget | 6 forgets {'search': 5, 'proposal': 1}; right routine removed 5/6; proposals within tombstone 0; re-confirmed 0 | 6 forgets {'search': 5, 'proposal': 1}; right routine removed 5/6; proposals within tombstone 0; re-confirmed 0 |
+| U13 | 'Forget that', person keeps going | real trips + synthetic forget | 6 forgets {'search': 5, 'proposal': 1}; right routine removed 6/6; proposals within tombstone 0; re-confirmed 0 | 6 forgets {'search': 5, 'proposal': 1}; right routine removed 6/6; proposals within tombstone 0; re-confirmed 0 |
 | U14 | Stated facts | synthetic at real times | QA 18/18 | 18/18 |
-| U15 | Cabin temp by season | real_context | proposal precision 0.94 (n=3904); missing seasonal facts: {'a:climate/cabin_temp': 5} | 0.94 (n=3904) |
+| U15 | Cabin temp by season | real_context | proposal precision 0.94 (n=3903); missing seasonal facts: {'a:climate/cabin_temp': 5} | 0.94 (n=3903) |
 | U16 | Vehicle fault, two people | synthetic | 6/6 promoted to vehicle | 6 |
 | U17 | AC / heater vs outside temp | real | AC: 19/28 cars, a one-threshold model gets 0.819 vs 0.736 baseline; heater: 7/14 cars, 0.816 vs 0.686 | carmem: unsupported |
 | U18 | Pre-warm / pre-cool | real | heater on in first 5 min on cold weekday mornings: 0.98 over 3 cars; AC on when > 25 C: 0.71 over 19 cars | carmem: unsupported |
-| U19 | Fan / defrost / seat heat | real_context | fan proposal precision 0.19 (n=1903); seat and wheel heating: no carmem key | 0.19 (n=1903) |
+| U19 | Fan / defrost / seat heat | real_context | fan proposal precision 0.19 (n=1905); seat and wheel heating: no carmem key | 0.19 (n=1905) |
 | U20 | Two drivers, different temps | composed | 0 proposals of the other person's value; QA 6/6 | 0 |
 | U21 | Passenger dual zone | synthetic | not built: carmem has no passenger-scoped writes | - |
 | U22 | Seat position per driver | real_context | proposal precision 1.00 (n=4008) | 1.00 (n=4008) |
@@ -66,23 +66,23 @@ Default policy (confirm ratio 0.7) and calibrated (confirm ratio 0.5).
 | U32 | Maintenance by mileage | real mileage + synthetic | not built: no carmem key | - |
 | U33 | Tyre pressure warning | synthetic | 6/6 promoted to vehicle | 6 |
 | U34 | Drive mode / ADAS never auto | synthetic | not built: no carmem key | - |
-| U35 | Child seat (sensitive) | synthetic | sent to cloud unmasked in 6/6 | 6 |
+| U35 | Child seat (sensitive) | synthetic | sent to cloud unmasked in 0/6 | 0 |
 
 ## Households
 
 | scenario | events by provenance | swapped trips | B trips dropped (overlap) | traps planted on |
 |---|---|---|---|---|
-| household_ved531_ved450 | {'real': 473, 'composed': 392, 'synthetic': 12} | 4 | 15 | {'U12': None, 'U13': None, 'method': 'dry run: most-proposed routine after 40% of the window'} |
+| household_ved531_ved450 | {'real': 474, 'composed': 391, 'synthetic': 12} | 3 | 15 | {'U12': None, 'U13': None, 'method': 'dry run: most-proposed routine after 40% of the window'} |
 | household_ved371_ved560 | {'real': 387, 'composed': 354, 'synthetic': 12} | 2 | 21 | {'U12': None, 'U13': None, 'method': 'dry run: most-proposed routine after 40% of the window'} |
 | household_ved388_ved575 | {'composed': 317, 'real': 364, 'synthetic': 12} | 1 | 40 | {'U12': None, 'U13': 'work', 'method': 'dry run: most-proposed routine after 40% of the window'} |
 | household_ved561_ved458 | {'composed': 300, 'real': 317, 'synthetic': 12} | 4 | 20 | {'U12': None, 'U13': None, 'method': 'dry run: most-proposed routine after 40% of the window'} |
-| household_ved550_ved455 | {'composed': 289, 'real': 288, 'synthetic': 12} | 4 | 8 | {'U12': None, 'U13': None, 'method': 'dry run: most-proposed routine after 40% of the window'} |
+| household_ved550_ved455 | {'composed': 288, 'real': 289, 'synthetic': 12} | 3 | 8 | {'U12': None, 'U13': None, 'method': 'dry run: most-proposed routine after 40% of the window'} |
 | household_ved565_ved462 | {'real': 288, 'composed': 275, 'synthetic': 12} | 2 | 6 | {'U12': None, 'U13': None, 'method': 'dry run: most-proposed routine after 40% of the window'} |
 
 ## Caveats
 
 * VED logs only some of each car's trips (median car: about 2-3 logged trips a week), so routine ratios are lower than a head unit that sees every trip would measure. Held-out checks only count weekdays on which the car was logged.
 * Trip ends are fogged to major intersections; one real place can split into neighbouring clusters.
-* The U9 swap rate is an assumption (10%) until it is computed from NHTS 2022.
+* The U9 swap rate comes from NHTS 2022 (`data/nhts/sharing_2022.json`): the share of weekday home-based-work trips in a shared household car driven by someone other than its main driver.
 * Households are composed: B's real trips are re-homed to A's home. Overlapping trips are dropped.
 * Settings values (temperature, seat, media, fan) are synthetic; the outside temperature and trip times that drive them are real.

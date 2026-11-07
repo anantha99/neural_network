@@ -2186,9 +2186,9 @@
      "2018-11-09T12:35:49"
     ],
     "b_trips_dropped_for_overlap": 15,
-    "swapped_trips": 4,
-    "swap_rate": 0.1,
-    "swap_rate_source": "assumption (NHTS 2022 not yet computed)",
+    "swapped_trips": 3,
+    "swap_rate": 0.0879,
+    "swap_rate_source": "NHTS 2022 weekday home based work trips, n=3106 (sharing_2022.json)",
     "composition": "B's trips are another real car's, re-homed to A's home; place names are neutral ids",
     "traps_planted_on": {
      "U12": null,
@@ -2198,8 +2198,8 @@
    },
    "events": 877,
    "events_by_provenance": {
-    "real": 473,
-    "composed": 392,
+    "real": 474,
+    "composed": 391,
     "synthetic": 12
    },
    "file": "household_ved531_ved450.json"
@@ -2236,8 +2236,8 @@
     ],
     "b_trips_dropped_for_overlap": 21,
     "swapped_trips": 2,
-    "swap_rate": 0.1,
-    "swap_rate_source": "assumption (NHTS 2022 not yet computed)",
+    "swap_rate": 0.0879,
+    "swap_rate_source": "NHTS 2022 weekday home based work trips, n=3106 (sharing_2022.json)",
     "composition": "B's trips are another real car's, re-homed to A's home; place names are neutral ids",
     "traps_planted_on": {
      "U12": null,
@@ -2285,8 +2285,8 @@
     ],
     "b_trips_dropped_for_overlap": 40,
     "swapped_trips": 1,
-    "swap_rate": 0.1,
-    "swap_rate_source": "assumption (NHTS 2022 not yet computed)",
+    "swap_rate": 0.0879,
+    "swap_rate_source": "NHTS 2022 weekday home based work trips, n=3106 (sharing_2022.json)",
     "composition": "B's trips are another real car's, re-homed to A's home; place names are neutral ids",
     "traps_planted_on": {
      "U12": null,
@@ -2334,8 +2334,8 @@
     ],
     "b_trips_dropped_for_overlap": 20,
     "swapped_trips": 4,
-    "swap_rate": 0.1,
-    "swap_rate_source": "assumption (NHTS 2022 not yet computed)",
+    "swap_rate": 0.0879,
+    "swap_rate_source": "NHTS 2022 weekday home based work trips, n=3106 (sharing_2022.json)",
     "composition": "B's trips are another real car's, re-homed to A's home; place names are neutral ids",
     "traps_planted_on": {
      "U12": null,
@@ -2382,9 +2382,9 @@
      "2018-11-04T12:37:31"
     ],
     "b_trips_dropped_for_overlap": 8,
-    "swapped_trips": 4,
-    "swap_rate": 0.1,
-    "swap_rate_source": "assumption (NHTS 2022 not yet computed)",
+    "swapped_trips": 3,
+    "swap_rate": 0.0879,
+    "swap_rate_source": "NHTS 2022 weekday home based work trips, n=3106 (sharing_2022.json)",
     "composition": "B's trips are another real car's, re-homed to A's home; place names are neutral ids",
     "traps_planted_on": {
      "U12": null,
@@ -2394,8 +2394,8 @@
    },
    "events": 589,
    "events_by_provenance": {
-    "composed": 289,
-    "real": 288,
+    "composed": 288,
+    "real": 289,
     "synthetic": 12
    },
    "file": "household_ved550_ved455.json"
@@ -2432,8 +2432,8 @@
     ],
     "b_trips_dropped_for_overlap": 6,
     "swapped_trips": 2,
-    "swap_rate": 0.1,
-    "swap_rate_source": "assumption (NHTS 2022 not yet computed)",
+    "swap_rate": 0.0879,
+    "swap_rate_source": "NHTS 2022 weekday home based work trips, n=3106 (sharing_2022.json)",
     "composition": "B's trips are another real car's, re-homed to A's home; place names are neutral ids",
     "traps_planted_on": {
      "U12": null,

@@ -82,6 +82,7 @@
    "health": "never",
    "home_address": "silent",
    "school": "silent",
+   "children": "silent",
    "note": "silent",
    "vehicle_fault": "silent"
   },
@@ -90,6 +91,7 @@
    "contacts": "sensitive",
    "home_address": "sensitive",
    "school": "sensitive",
+   "children": "sensitive",
    "finance": "sensitive",
    "climate": "public",
    "seat": "public",
@@ -104,6 +106,7 @@
    "contacts",
    "home_address",
    "school",
+   "children",
    "finance"
   ],
   "mask_in_cloud_sensitivity": [
@@ -121,8 +124,8 @@
   ],
   "b_trips_dropped_for_overlap": 20,
   "swapped_trips": 4,
-  "swap_rate": 0.1,
-  "swap_rate_source": "assumption (NHTS 2022 not yet computed)",
+  "swap_rate": 0.0879,
+  "swap_rate_source": "NHTS 2022 weekday home based work trips, n=3106 (sharing_2022.json)",
   "composition": "B's trips are another real car's, re-homed to A's home; place names are neutral ids",
   "traps_planted_on": {
    "U12": null,
@@ -21365,14 +21368,12 @@
   },
   "U35": {
    "stored_for_a": true,
-   "sent_to_cloud": true
+   "sent_to_cloud": false
   },
   "qa_accuracy": 1.0,
   "missing_expected_facts": [
    "a:climate/cabin_temp~21"
   ],
-  "cloud_leaks": [
-   "child seat"
-  ]
+  "cloud_leaks": []
  }
 }

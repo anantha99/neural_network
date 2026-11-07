@@ -145,6 +145,9 @@ scores:
 * LongMemEval-style QA on the rendered context, with forbidden strings for leakage
 * cloud masking
 
+The trips are all synthetic today. `docs/DATASET_USECASES.md` plans a real-data track
+(VED, NHTS) with per-event provenance.
+
 ## Implementations
 The Python package is the reference. `kotlin/carmem-core` is a line-for-line port for the
 head unit, verified by replaying `fixtures/household_seed7_w8.json` with the protocol in

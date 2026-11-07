@@ -27,6 +27,7 @@ DEFAULT_TIERS: dict[str, str] = {
     "health": "never",
     "home_address": "silent",
     "school": "silent",
+    "children": "silent",
     "note": "silent",
     "vehicle_fault": "silent",
 }
@@ -36,6 +37,7 @@ DEFAULT_SENSITIVITY: dict[str, str] = {
     "contacts": "sensitive",
     "home_address": "sensitive",
     "school": "sensitive",
+    "children": "sensitive",
     "finance": "sensitive",
     "climate": "public",
     "seat": "public",
@@ -97,7 +99,7 @@ class Policy:
     tiers: dict[str, str] = field(default_factory=lambda: dict(DEFAULT_TIERS))
     sensitivity: dict[str, str] = field(default_factory=lambda: dict(DEFAULT_SENSITIVITY))
     mask_in_cloud_categories: list[str] = field(
-        default_factory=lambda: ["health", "contacts", "home_address", "school", "finance"]
+        default_factory=lambda: ["health", "contacts", "home_address", "school", "children", "finance"]
     )
     mask_in_cloud_sensitivity: list[str] = field(default_factory=lambda: ["sensitive"])
 

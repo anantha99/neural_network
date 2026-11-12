@@ -9,6 +9,8 @@ import kotlin.concurrent.thread
 /**
  * adb entry point to the ICarMemory surface. Results go to logcat under tag carmem-probe.
  *   op = proactive | recall | hear | context | snapshot | explain | forget | enroll | stats, arg = the op's argument
+ *        said | mention (extra kind) | resolve | conversation | state | name | places | destination (extra kind) | export | erase
+ *   erase with no arg erases everything; with arg, that person
  *   enroll: arg = person id, extras name and bindings (JSON array of {"kind","value"})
  */
 class ProbeReceiver : BroadcastReceiver() {
@@ -31,6 +33,16 @@ class ProbeReceiver : BroadcastReceiver() {
                     "explain" -> m.explain(arg ?: "")
                     "forget" -> m.forget(arg ?: "")
                     "stats" -> m.stats()
+                    "said" -> { m.said(arg ?: ""); "ok" }
+                    "mention" -> { m.mention(intent.getStringExtra("kind") ?: "place", arg ?: ""); "ok" }
+                    "resolve" -> m.resolve(arg ?: "")
+                    "conversation" -> m.conversation()
+                    "state" -> m.state()
+                    "name" -> m.namePlace(arg ?: "")
+                    "places" -> m.places()
+                    "destination" -> { m.setDestination(arg ?: "", intent.getStringExtra("kind"), Double.NaN, Double.NaN); "ok" }
+                    "export" -> m.exportMemory(arg)
+                    "erase" -> m.erase(arg)
                     "enroll" -> m.enroll(arg ?: "", intent.getStringExtra("name") ?: arg ?: "", intent.getStringExtra("bindings") ?: "[]")
                     else -> "unknown op"
                 }

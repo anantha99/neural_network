@@ -9,7 +9,8 @@ platform callbacks into `carmem.car.CarEvent`s. All logic lives in `carmem-car`
 | `CarMemoryService` | foreground bound service, single worker thread, owns the database; exposes `ICarMemory` over AIDL with JSON payloads in the wire schema |
 | `ICarMemory.aidl` | hear / context / recall / proactive / handleTool / explain / forget / snapshot / unmask |
 | `AndroidSqlDriver` | `carmem.SqlDriver` over the AndroidX bundled SQLite driver |
-| `VehicleSignals` | `IGNITION_STATE`, `HVAC_TEMPERATURE_SET`, `SEAT_OCCUPANCY` via `CarPropertyManager`; driver zone's user via `CarOccupantZoneManager` as a `seat_profile` signal |
+| `VehicleSignals` | `IGNITION_STATE`, `HVAC_TEMPERATURE_SET`, `HVAC_FAN_SPEED`, `SEAT_OCCUPANCY` via `CarPropertyManager`; driver zone's user via `CarOccupantZoneManager` as a `seat_profile` signal |
+| `MediaSignal` | the genre or app that is playing, via `MediaSessionManager`, as a `media` setting; needs the privileged `MEDIA_CONTENT_CONTROL` |
 | `LocationFeed` | `LocationManager` fixes for trip segmentation |
 | `PhoneSignal` | connected bonded Bluetooth phone as a `phone` signal |
 | `ProposalBus` | broadcast of proactive proposals for the assistant UI / TTS: to the host app, and to any app holding `carmem.permission.BIND_MEMORY` |
@@ -23,14 +24,26 @@ The assistant keeps its own model; carmem is the memory behind it.
 2. Do not provision a model for carmem (no `.litertlm` file, no `gemini.key` in the service's `noBackupFilesDir`).
    Extraction then stays rule-based and `hear` returns in about a millisecond instead of waiting for a model.
 3. Per turn: `context(query, "local")` for the system prompt, `hear(text, null)` with what the driver said (it
-   handles "no", "yes", "forget that" and "why" on its own), and `handleTool` for the six memory tools. When your
-   model decides something is worth keeping, call `memory_remember`: a known pattern becomes a typed fact,
-   anything else a note.
+   handles "no", "yes", "forget that", "why" and "save this place as ..." on its own), `said(reply)` with what the
+   assistant answered, and `handleTool` for the six memory tools. When your model decides something is worth
+   keeping, call `memory_remember`: a known pattern becomes a typed fact, anything else a note.
+   - "Take me there", "call him": when the assistant resolves something the memory cannot know (a search result,
+     a contact from the phone book), tell it with `mention("place", "Luigi's")`. The context then carries an
+     "In focus" line, and `resolve(text)` answers directly. This lasts five minutes or the drive and is never stored.
+   - Starting navigation: `setDestination(name, kind, lat, lon)`. On arrival the place takes that name and kind,
+     which is what later answers "the restaurant from last Friday".
+   - A passenger speaking: pass any stable id for the voice or seat as `speakerId`, and use `contextFor` for their
+     turn. `state()` says how many seats are occupied.
 4. Proposals: register a receiver for `carmem.android.PROPOSALS` at runtime, or call `proactive(null)`, which
    answers for where the car is now. Seat changes are withheld while the car is moving.
 5. The driver's Android user profile is enrolled on first sight as `user:<id>` with the name `Driver <id>`. Call
    `enroll("user:<id>", "<name>", "[]")` to give it a real name. Key fobs and phones still need `enroll` bindings.
-6. `stats()` returns per-call latency measured inside the service. Run it after a drive on the target hardware:
+6. Identity from elsewhere in the car (key fob, face, voice id): `observeOccupant(kind, value, confidence, role)`
+   shortly before or after ignition on, with the value bound to a person through `enroll`.
+7. The driver's rights: `exportMemory(null)` returns everything held about the current driver; `forget(target)`
+   removes one memory and its trail; `erase(personId)` removes a person; `erase(null)` wipes the memory for resale.
+   For a rental or fleet car put `{"guest_only": true}` in `policy.json` in the service's `noBackupFilesDir`.
+8. `stats()` returns per-call latency measured inside the service. Run it after a drive on the target hardware:
    the 50 ms budget is checked there, not on a build machine.
 
 ## Build

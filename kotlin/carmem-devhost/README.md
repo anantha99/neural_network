@@ -34,7 +34,8 @@ adb reboot
 adb shell pm grant --user 10 carmem.devhost android.permission.ACCESS_FINE_LOCATION
 ```
 
-Privileged-app permissions are enforced on this image: a requested privileged permission
+`privapp-permissions-carmem.xml` now also lists `MEDIA_CONTENT_CONTROL`: push the new file with the new APK, or the
+image will not boot. Privileged-app permissions are enforced on this image: a requested privileged permission
 missing from the allowlist stops the system from booting.
 
 ## Run
@@ -45,8 +46,10 @@ adb logcat -s carmem:D carmem-probe:I
 cd carmem-devhost/sim && ./drive.sh
 ```
 
-`op` is one of `proactive`, `recall`, `hear`, `context`, `snapshot`, `explain`, `forget`, `enroll` or `stats`,
-with `--es arg <value>` for the argument. `stats` prints per-call latency (p50/p95/p99/max, queue time, calls
+`op` is one of `proactive`, `recall`, `hear`, `context`, `snapshot`, `explain`, `forget`, `enroll`, `stats`,
+`said`, `mention`, `resolve`, `conversation`, `state`, `name`, `places`, `destination`, `export` or `erase`,
+with `--es arg <value>` for the argument (`mention` and `destination` also take `--es kind <value>`; `erase` with
+no `arg` erases everything). `stats` prints per-call latency (p50/p95/p99/max, queue time, calls
 over 50 ms) measured inside the service since it started.
 
 ## Why the service runs in the driver's user

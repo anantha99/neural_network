@@ -35,6 +35,8 @@ class CarSession(
     private var proposedThisSession = false
     private var lastFix: LocationFix? = null
     private var lastPlace: Place? = null
+    private var pendingDestination: DestinationSet? = null
+    private val seated = linkedMapOf<String, Boolean>()   // seat -> is the driver's
 
     val segmenter = TripSegmenter(places) { trip -> onTrip(trip) }
 
@@ -47,6 +49,36 @@ class CarSession(
     init {
         memory.store.getMeta(PLACES_KEY)?.let(places::restore)
         places.onRenamed = { old, new, at -> memory.renamePlace(old, new, at); persistPlaces() }
+        // the memory knows names, this side knows coordinates
+        memory.placeNamer = { name, at -> namePlace(name, at) }
+        memory.knownPlaces = { places.all().mapNotNull { it.label } }
+        memory.onErased = { places.clear(); lastPlace = null; pendingDestination = null; seated.clear() }
+    }
+
+    /** Name the place the car is at. Null when there has been no fix yet. */
+    fun namePlace(name: String, ts: LocalDateTime): String? {
+        val f = lastFix ?: return null
+        val place = places.resolve(f.lat, f.lon).also { lastPlace = it }
+        places.label(place, name.trim(), ts)
+        persistPlaces(); publishLive()
+        return place.name
+    }
+
+    /** The car as it is now, for the assistant's context. Held in memory by [CarMemory.setLive]; nothing here is stored. */
+    private fun publishLive() {
+        memory.carMoving = moving; memory.carLocation = location
+        memory.setLive("location", location)
+        memory.setLive("moving", if (lastFix == null) null else if (moving) "yes" else "no")
+        memory.setLive("destination", pendingDestination?.name)
+        val occ = memory.occupancy
+        val known = occ?.passengerIds.orEmpty().map { memory.store.getPerson(it)?.name ?: it }
+        val others = seated.count { !it.value }
+        memory.setLive("passengers", when {
+            known.isNotEmpty() -> known.joinToString(", ") + if (others > known.size) " and ${others - known.size} other(s)" else ""
+            others > 0 -> "$others, not identified"
+            seated.isNotEmpty() -> "none"
+            else -> null
+        })
     }
 
     fun onEvent(e: CarEvent) {
@@ -61,8 +93,8 @@ class CarSession(
                 segmenter.onEvent(e)
                 // the segmenter has just made a place of wherever the car is parked, if it was not one already
                 lastFix?.let { lastPlace = places.find(it.lat, it.lon) }
-                memory.carMoving = moving; memory.carLocation = location
                 if (e.on) open(e.ts) else close(e.ts)
+                publishLive()
             }
             is LocationFix -> {
                 segmenter.onEvent(e)
@@ -71,20 +103,26 @@ class CarSession(
                 // would grow the place list (and the cost of every lookup) with every kilometre driven.
                 // The segmenter creates places where trips start and end.
                 lastPlace = places.find(e.lat, e.lon)
-                memory.carMoving = moving; memory.carLocation = location
+                publishLive()
                 if (sessionOpen && !proposedThisSession) propose(e.ts)
             }
-            is SettingChanged -> segmenter.onEvent(e)
+            is SettingChanged -> { segmenter.onEvent(e); memory.setLive(e.key, e.value.let { v -> (v as? kotlinx.serialization.json.JsonPrimitive)?.content ?: v.toString() }) }
+            is SeatOccupied -> { if (e.occupied) seated[e.seat] = e.driver else seated.remove(e.seat); publishLive() }
+            is DestinationSet -> {
+                pendingDestination = e.takeIf { it.name.isNotBlank() }
+                if (sessionOpen && e.name.isNotBlank()) memory.mention("place", e.name, e.ts)
+                publishLive()
+            }
             is UtteranceHeard -> if (sessionOpen) memory.hear(e.text, e.speakerId, e.ts)
             is VehicleFault -> memory.recordVehicleEvent(e.key, e.value, now = e.ts)
-            is PlaceNamed -> lastFix?.let { f -> places.label(places.resolve(f.lat, f.lon).also { lastPlace = it }, e.name, e.ts); persistPlaces() }
+            is PlaceNamed -> namePlace(e.name, e.ts)
         }
     }
 
     /** Fresh driver signals, enrolling an Android user profile seen for the first time. */
     private fun signalsAt(ts: LocalDateTime): List<IdentitySignal> {
         val signals = pendingSignals.filter { Duration.between(it.ts, ts).abs() <= signalTtl }.map { it.signal }.distinct()
-        if (autoEnrollProfiles) for (s in signals) {
+        if (autoEnrollProfiles && !memory.policy.guest_only) for (s in signals) {
             if (s.kind != "seat_profile" || s.role != "driver" || memory.store.lookupIdentity(s.kind, s.value) != null) continue
             memory.enroll(s.value, "Driver ${s.value.substringAfter(':')}", listOf(s.kind to s.value))
         }
@@ -108,6 +146,8 @@ class CarSession(
         memory.ignitionOff(ts)
         sessionOpen = false
         pendingSignals.clear()
+        // a destination without coordinates meant "the next stop"; one with coordinates still holds after a fuel stop
+        if (pendingDestination?.lat == null) pendingDestination = null
         persistPlaces()
     }
 
@@ -117,7 +157,17 @@ class CarSession(
         if (props.isNotEmpty()) onProposals(props)
     }
 
-    private fun onTrip(trip: Trip) {
+    private fun onTrip(arrived: Trip) {
+        var trip = arrived
+        val place = places.all().firstOrNull { it.name == trip.destination }
+        val dest = pendingDestination?.takeIf { java.time.Duration.between(it.ts, trip.end).toHours() < 12 }
+        if (place != null && dest != null && (dest.lat == null || dest.lon == null || places.find(dest.lat, dest.lon)?.id == place.id)) {
+            // the car has arrived where navigation was set to: the place takes the name and kind it was given
+            if (!dest.kind.isNullOrBlank()) place.kind = dest.kind.trim().lowercase()
+            if (place.label == null) places.label(place, dest.name.trim(), trip.end)
+            pendingDestination = null
+        }
+        if (place != null) trip = trip.copy(destination = place.name, destinationKind = place.kind)
         if (sessionOpen || memory.occupancy != null) memory.recordTrip(trip, trip.end)
         persistPlaces()
         // allow the next leg (chained trip) to get its own proposal from the new place

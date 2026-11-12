@@ -8,6 +8,7 @@
     <uses-permission android:name="android.car.permission.CONTROL_CAR_CLIMATE" />     <!-- HVAC_TEMPERATURE_SET -->
     <uses-permission android:name="android.car.permission.CONTROL_CAR_SEATS" />       <!-- SEAT_OCCUPANCY -->
     <uses-permission android:name="android.car.permission.CAR_SPEED" />               <!-- PERF_VEHICLE_SPEED -->
+    <uses-permission android:name="android.permission.MEDIA_CONTENT_CONTROL" />       <!-- what is playing, for learned media habits; privileged -->
     <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
     <uses-permission android:name="android.permission.BLUETOOTH_CONNECT" />
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />

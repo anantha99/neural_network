@@ -25,5 +25,14 @@ data class UtteranceHeard(override val ts: LocalDateTime, val text: String, val 
 
 data class VehicleFault(override val ts: LocalDateTime, val key: String, val value: JsonElement) : CarEvent
 
+/** A seat became occupied or empty. `driver` marks the driver's seat; the others are passengers. */
+data class SeatOccupied(override val ts: LocalDateTime, val seat: String, val occupied: Boolean, val driver: Boolean = false) : CarEvent
+
+/**
+ * Navigation was started to somewhere with a name, and perhaps a kind ("restaurant") and coordinates. When the car
+ * arrives, the place takes the name and kind, which is how "the restaurant from last Friday" can be answered later.
+ */
+data class DestinationSet(override val ts: LocalDateTime, val name: String, val kind: String? = null, val lat: Double? = null, val lon: Double? = null) : CarEvent
+
 /** The driver named the current place ("this is home", "save this as the gym"). */
 data class PlaceNamed(override val ts: LocalDateTime, val name: String) : CarEvent

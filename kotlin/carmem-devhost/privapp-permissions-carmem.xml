@@ -6,6 +6,7 @@
         <permission name="android.car.permission.CONTROL_CAR_CLIMATE" />
         <permission name="android.car.permission.CONTROL_CAR_SEATS" />
         <permission name="android.car.permission.CAR_SPEED" />
+        <permission name="android.permission.MEDIA_CONTENT_CONTROL" />
         <permission name="android.permission.INTERACT_ACROSS_USERS" />
         <permission name="android.permission.QUERY_USERS" />
         <permission name="android.permission.START_ACTIVITIES_FROM_BACKGROUND" />

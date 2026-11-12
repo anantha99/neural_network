@@ -168,4 +168,61 @@ class CarTest {
         session.onEvent(IgnitionChanged(t0.plusMinutes(6), false))
         assertEquals(false, session.moving)
     }
+
+    @Test fun `navigation names the place, so the restaurant from last Friday can be found`() {
+        val mem = CarMemory(JdbcSqlDriver())
+        val session = CarSession(mem, PlaceResolver())
+        val profile = IdentitySignal("seat_profile", "user:10")
+        val friday = LocalDateTime.of(2026, 9, 11, 19, 0)
+        val restaurant = 51.5200 to -0.1100
+        fun go(from: Pair<Double, Double>, to: Pair<Double, Double>, start: LocalDateTime, before: () -> Unit = {}): LocalDateTime {
+            session.onEvent(OccupantObserved(start.minusSeconds(10), profile))
+            session.onEvent(LocationFix(start.minusSeconds(5), from.first, from.second, 0.0))
+            session.onEvent(IgnitionChanged(start, true)); before()
+            val end = drive(session::onEvent, from, to, start, 12)
+            session.onEvent(IgnitionChanged(end.plusSeconds(30), false)); return end
+        }
+        // Friday evening: the assistant starts navigation to a search result it knows by name, kind and position
+        go(home, restaurant, friday) {
+            session.onEvent(DestinationSet(friday.plusSeconds(10), "Luigi's", "Restaurant", restaurant.first, restaurant.second))
+            assertEquals("Luigi's", mem.context("", "local", friday.plusSeconds(20)).live["destination"])
+            assertTrue("\"name\":\"Luigi's\"" in mem.resolve("how long until we get there", friday.plusSeconds(20)).toString())
+        }
+        go(restaurant, home, friday.plusHours(2))
+        go(home, school, friday.plusDays(1).withHour(10))                       // Saturday: somewhere with no name
+        // Monday: asked about it
+        val monday = friday.plusDays(3).withHour(8)
+        session.onEvent(OccupantObserved(monday.minusSeconds(10), profile)); session.onEvent(IgnitionChanged(monday, true))
+        val hits = mem.recall("what was the restaurant from last Friday", 3, monday)["episodes"].toString()
+        assertTrue("-> Luigi's (restaurant)" in hits && "place-3" !in hits, hits)      // Friday's dinner, not Saturday's drive
+        assertEquals("restaurant", session.places.all().first { it.name == "Luigi's" }.kind)
+        // "save this place as ..." through the assistant names where the car is parked
+        assertEquals("the lake", mem.hear("save this place as the lake", now = monday)["place"].toString().trim('"'))
+        assertEquals("the lake", session.location)
+        // names and kinds survive a restart (a second session over the same database)
+        assertEquals(listOf("Luigi's" to "restaurant", "the lake" to null), CarSession(mem, PlaceResolver()).places.all().filter { it.label != null }.map { it.name to it.kind })
+    }
+
+    @Test fun `live state follows the car and erasing everything clears the places too`() {
+        val mem = CarMemory(JdbcSqlDriver())
+        val session = CarSession(mem, PlaceResolver(homeMinNightMinutes = 60))
+        val t0 = LocalDateTime.of(2026, 9, 7, 7, 40)
+        schoolDay(session, t0, IdentitySignal("seat_profile", "user:10"))
+        val next = t0.plusDays(1)
+        session.onEvent(OccupantObserved(next.minusSeconds(10), IdentitySignal("seat_profile", "user:10")))
+        session.onEvent(LocationFix(next.minusSeconds(5), home.first, home.second, 0.0))
+        session.onEvent(IgnitionChanged(next, true))
+        session.onEvent(SettingChanged(next.plusSeconds(5), "cabin_temp", JsonPrimitive(21.5)))
+        session.onEvent(SeatOccupied(next.plusSeconds(6), "row1-left", true, driver = true))
+        session.onEvent(SeatOccupied(next.plusSeconds(7), "row1-right", true))
+        val live = mem.context("", "local", next.plusSeconds(10)).live
+        assertEquals(mapOf("location" to "home", "moving" to "no", "passengers" to "1, not identified", "cabin_temp" to "21.5"), live)
+        assertTrue("Known places: home" in mem.context("", "local", next.plusSeconds(10)).render())
+        session.onEvent(SeatOccupied(next.plusSeconds(20), "row1-right", false))
+        assertEquals("none", mem.liveState()["passengers"])
+        // resale
+        mem.eraseAll()
+        assertTrue(session.places.all().isEmpty() && mem.liveState().isEmpty())
+        assertTrue(CarSession(mem, PlaceResolver()).places.all().isEmpty())
+    }
 }

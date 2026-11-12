@@ -9,8 +9,11 @@ import android.util.Log
 import carmem.CarMemory
 import carmem.ContextPacket
 import carmem.Policy
+import carmem.IdentitySignal
 import carmem.car.CarEvent
 import carmem.car.CarSession
+import carmem.car.DestinationSet
+import carmem.car.OccupantObserved
 import carmem.car.PlaceResolver
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonArray
@@ -36,6 +39,7 @@ class CarMemoryService : Service() {
     private var signals: VehicleSignals? = null
     private var location: LocationFeed? = null
     private var phone: PhoneSignal? = null
+    private var media: MediaSignal? = null
     private var lastCloudPacket: ContextPacket? = null
     private val latency = carmem.LatencyRecorder()
     private val json = Json { ignoreUnknownKeys = true }
@@ -60,6 +64,7 @@ class CarMemoryService : Service() {
             signals = VehicleSignals(this, ::post).also { it.start() }
             location = LocationFeed(this, ::post).also { it.start() }
             phone = PhoneSignal(this, ::post).also { it.start() }
+            media = MediaSignal(this, ::post).also { it.start() }
         }
         Log.i(TAG, "carmem service up, db=${File(dir, "carmem.db")}, llm=${llm?.javaClass?.simpleName ?: "rules"}")
     }
@@ -105,6 +110,38 @@ class CarMemoryService : Service() {
         override fun snapshot(forCloud: Boolean): String = onWorker("snapshot") { memory.snapshot(forCloud).toString() }
         override fun unmask(text: String): String = lastCloudPacket?.unmask(text) ?: text
         override fun stats(): String = latency.toJson().toString()
+
+        override fun said(text: String) { onWorker("said") { memory.said(text, LocalDateTime.now()) } }
+        override fun mention(kind: String, name: String) { onWorker("mention") { memory.mention(kind, name, LocalDateTime.now()) } }
+        override fun resolve(text: String): String = onWorker("resolve") { memory.resolve(text, LocalDateTime.now()).toString() }
+        override fun conversation(): String = onWorker("conversation") { memory.conversation(LocalDateTime.now()).toString() }
+
+        override fun state(): String = onWorker("state") { JsonObject(memory.liveState().mapValues { JsonPrimitive(it.value) }).toString() }
+        override fun setDestination(name: String, kind: String?, lat: Double, lon: Double) =
+            post(DestinationSet(LocalDateTime.now(), name, kind, lat.takeUnless { it.isNaN() }, lon.takeUnless { it.isNaN() }))
+
+        override fun namePlace(name: String): String = onWorker("namePlace") { buildJsonObject { put("place", session.namePlace(name, LocalDateTime.now())) }.toString() }
+        override fun places(): String = onWorker("places") {
+            JsonArray(session.places.all().filter { it.label != null }.map { p ->
+                buildJsonObject { put("name", p.name); put("kind", p.kind); put("lat", p.lat); put("lon", p.lon); put("visits", p.visits) }
+            }).toString()
+        }
+
+        override fun observeOccupant(kind: String, value: String, confidence: Double, role: String) =
+            post(OccupantObserved(LocalDateTime.now(), IdentitySignal(kind, value, confidence, role)))
+        override fun contextFor(speakerId: String?, query: String, destination: String): String = onWorker("context") {
+            val p = memory.context(query, destination, LocalDateTime.now(), speakerId)
+            if (destination == "cloud") lastCloudPacket = p
+            buildJsonObject { put("rendered", p.render()); put("packet", p.toJson()) }.toString()
+        }
+
+        override fun exportMemory(personId: String?): String = onWorker("export") { memory.export(personId).toString() }
+        override fun erase(personId: String?): String = onWorker("erase") {
+            val result = if (personId == null) memory.eraseAll() else memory.erasePerson(personId, LocalDateTime.now())
+            if (personId == null) { File(noBackupFilesDir, "places.tsv").delete(); lastCloudPacket = null }   // the legacy place file would bring places back
+            session.persistPlaces()
+            result.toString()
+        }
         override fun enroll(personId: String, name: String, bindingsJson: String): String = onWorker("enroll") {
             val bindings = (json.parseToJsonElement(bindingsJson) as JsonArray).map {
                 val b = it as JsonObject
@@ -134,7 +171,7 @@ class CarMemoryService : Service() {
 
     override fun onDestroy() {
         handler.post {
-            signals?.stop(); location?.stop(); phone?.stop()
+            signals?.stop(); location?.stop(); phone?.stop(); media?.stop()
             session.persistPlaces()   // already saved after every trip; this only catches dwell counted since
             memory.close()
             (llm as? AutoCloseable)?.close()

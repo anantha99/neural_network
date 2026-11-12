@@ -15,6 +15,7 @@ data class Place(
     var label: String? = null,
     var nightMinutes: Long = 0,     // dwell between 22:00 and 06:00  -> home
     var workdayMinutes: Long = 0,   // dwell Mon-Fri 09:00-16:00     -> work
+    var kind: String? = null,       // "restaurant", "gym": told by navigation or the driver, never guessed
 ) {
     /** The name routines and episodes use. Stable per place even before it is labelled. */
     val name: String get() = label ?: "place-$id"
@@ -46,6 +47,9 @@ class PlaceResolver(
     var onRenamed: (old: String, new: String, at: LocalDateTime) -> Unit = { _, _, _ -> }
 
     fun all(): List<Place> = places.toList()
+
+    /** Forget every place. For when the memory itself has been erased. */
+    fun clear() { places.clear(); nextId = 1 }
 
     /** The known place at these coordinates, if any. Unlike [resolve] it never creates one: use it for fixes on the road. */
     fun find(lat: Double, lon: Double): Place? = places.firstOrNull { haversineMeters(it.lat, it.lon, lat, lon) <= radiusMeters }
@@ -88,13 +92,13 @@ class PlaceResolver(
         if (places.none { it.label == "work" }) places.filter { it.label == null && it.workdayMinutes >= workMinWorkdayMinutes }.maxByOrNull { it.workdayMinutes }?.let { label(it, "work", at) }
     }
 
-    fun snapshot(): String = places.joinToString("\n") { "${it.id}\t${it.lat}\t${it.lon}\t${it.visits}\t${it.label ?: ""}\t${it.nightMinutes}\t${it.workdayMinutes}" }
+    fun snapshot(): String = places.joinToString("\n") { "${it.id}\t${it.lat}\t${it.lon}\t${it.visits}\t${it.label ?: ""}\t${it.nightMinutes}\t${it.workdayMinutes}\t${it.kind ?: ""}" }
 
     fun restore(text: String) {
         places.clear()
         text.lineSequence().filter { it.isNotBlank() }.forEach { line ->
             val f = line.split("\t")
-            places += Place(f[0].toInt(), f[1].toDouble(), f[2].toDouble(), f[3].toInt(), f[4].ifEmpty { null }, f[5].toLong(), f[6].toLong())
+            places += Place(f[0].toInt(), f[1].toDouble(), f[2].toDouble(), f[3].toInt(), f[4].ifEmpty { null }, f[5].toLong(), f[6].toLong(), f.getOrNull(7)?.ifEmpty { null })
         }
         nextId = (places.maxOfOrNull { it.id } ?: 0) + 1
     }

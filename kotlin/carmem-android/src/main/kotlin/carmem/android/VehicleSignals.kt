@@ -12,6 +12,7 @@ import carmem.IdentitySignal
 import carmem.car.CarEvent
 import carmem.car.IgnitionChanged
 import carmem.car.OccupantObserved
+import carmem.car.SeatOccupied
 import carmem.car.SettingChanged
 import kotlinx.serialization.json.JsonPrimitive
 import java.time.LocalDateTime
@@ -43,6 +44,8 @@ class VehicleSignals(private val context: Context, private val sink: (CarEvent) 
         pm.registerCallback(callback, VehiclePropertyIds.HVAC_TEMPERATURE_SET, CarPropertyManager.SENSOR_RATE_ONCHANGE)
         runCatching { pm.registerCallback(callback, VehiclePropertyIds.SEAT_OCCUPANCY, CarPropertyManager.SENSOR_RATE_ONCHANGE) }
             .onFailure { Log.i(CarMemoryService.TAG, "seat occupancy unavailable: ${it.message}") }
+        runCatching { pm.registerCallback(callback, VehiclePropertyIds.HVAC_FAN_SPEED, CarPropertyManager.SENSOR_RATE_ONCHANGE) }
+            .onFailure { Log.i(CarMemoryService.TAG, "fan speed unavailable: ${it.message}") }
     }
 
     /** The driver seat's Android user is a seat_profile signal; AAOS guest users stay guests in memory. */
@@ -78,7 +81,13 @@ class VehicleSignals(private val context: Context, private val sink: (CarEvent) 
                     if (value.areaId and DRIVER_HVAC_AREAS != 0 || value.areaId == 0)
                         sink(SettingChanged(now, "cabin_temp", JsonPrimitive((value.value as Float).toDouble())))
                 }
-                VehiclePropertyIds.SEAT_OCCUPANCY -> Unit // reserved: passenger presence for passenger-scoped writes
+                VehiclePropertyIds.HVAC_FAN_SPEED -> {
+                    if (value.areaId and DRIVER_HVAC_AREAS != 0 || value.areaId == 0)
+                        (value.value as? Int)?.let { sink(SettingChanged(now, "fan", JsonPrimitive(it))) }
+                }
+                // Who is seated is live state for the assistant and tells it a passenger may be the one speaking.
+                VehiclePropertyIds.SEAT_OCCUPANCY ->
+                    (value.value as? Int)?.let { sink(SeatOccupied(now, "seat:${value.areaId}", it == SEAT_OCCUPIED, driver = value.areaId and DRIVER_HVAC_AREAS != 0)) }
             }
         }
         override fun onErrorEvent(propertyId: Int, areaId: Int) { Log.w(CarMemoryService.TAG, "property error $propertyId/$areaId") }
@@ -90,5 +99,6 @@ class VehicleSignals(private val context: Context, private val sink: (CarEvent) 
         // VehicleAreaSeat.ROW_1_LEFT | ROW_1_CENTER; adjust for right-hand-drive markets via policy if needed.
         const val DRIVER_HVAC_AREAS = 0x0001 or 0x0002
         private const val PER_USER_UID_RANGE = 100_000 // UserHandle.PER_USER_RANGE
+        private const val SEAT_OCCUPIED = 2             // VehicleSeatOccupancyState.OCCUPIED
     }
 }

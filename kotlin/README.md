@@ -9,10 +9,40 @@ Three modules:
 
 ```
 cd kotlin
-./gradlew test                     # core + car, 22 tests
+./gradlew test                     # core + car, 36 tests
 ./gradlew :carmem-core:latency     # per-call latency table, see below
 ./gradlew :carmem-android:assembleDebug   # with ANDROID_HOME set
 ```
+
+## What it remembers
+
+One test per row in `UseCaseTest` (core) and `CarTest` (through the car pipeline).
+
+| Kind | Example | Lifetime | How |
+|---|---|---|---|
+| Conversation | "take me there", "call him" | five minutes or the drive; RAM only | `hear` records the driver's turn, `said` the assistant's, `mention` what was resolved; `resolve(text)` and the "In focus" line of the context say what a pronoun means |
+| Live vehicle state | location, destination, cabin settings, who is seated | not stored | `CarSession` publishes it with `setLive`; the context packet shows it under "Right now" |
+| Preferences | "21°C", "avoid tolls", "likes jazz" | long-term | stated, or learned from three consistent observations of cabin temperature, fan or what is playing; a dislike replaces a like |
+| Named things | "mom's house", "the boss" = John | long-term | "the boss is John"; "mom's house is at 12 Elm Street"; "this is mom's house" or `namePlace` names where the car is |
+| Routines | gym Tuesdays 7 pm | long-term, decays | mined from trips; demoted by "no", retired when it stops, blocked by "forget that" |
+| Past events | "the restaurant from last Friday" | six weeks | trips and utterances; "last Friday", "yesterday evening", "two days ago" restrict recall to that time; a place gets its name and kind when navigation is set to it (`setDestination`) |
+
+And what a shared car adds:
+
+| Problem | Handling |
+|---|---|
+| Several drivers | memory is per person: Android user profile, paired phone, and key fob or face when a component reports them (`observeOccupant`) |
+| Passengers speaking | `hear(text, speakerId)`: a known passenger's words go to their memory; a speaker the car cannot identify gets a scope that ends with the drive |
+| Rental and fleet cars | `Policy.guest_only`: everyone is a guest, nobody is enrolled, nothing outlives the trip |
+| Resale | `eraseAll()` empties every table and the place list; `erasePerson(id)` removes one person |
+| Stays on the device | no network port; the cloud packet carries placeholders (`<contacts_2>`, `<place_1>`, `<note_3>`) for sensitive facts, notes, and every named place, and `unmask` puts the values back |
+| View and delete | `export(id)` returns everything held about a person; `forget` removes a fact with its earlier values, the utterances it came from and its audit trail |
+| Retention | conversation 5 minutes, episodes 6 weeks, audit trail 90 days, retired facts and routines 180 days, forgotten-item blocks 90 days; all in `Policy` |
+
+Limits worth knowing: a toll preference is stated, not learned (no platform signal says a road was tolled); a place has a
+kind only when navigation or the driver gave it one, the car does not look places up; encryption at rest is Android's
+per-user file encryption; and the conversation and episode text sent in a cloud packet is masked only where it repeats a
+value the memory holds, so what else the driver said is the assistant's to route.
 
 ## Latency
 
@@ -22,16 +52,16 @@ file-backed database and times every call 200 times. On a cloud build machine (J
 
 | call | p50 | p99 | p99 before this work |
 |---|---|---|---|
-| `context("")` | 0.2 ms | 0.4 ms | 4.0 ms |
-| `context(query)` / `recall` | 1.3 ms | 4-5 ms | 23-25 ms |
-| `proactive` | 0.5 ms | 2 ms | 9.3 ms |
-| `hear`, nothing to store | 0.05 ms | 0.4 ms | 2.9 ms |
-| `hear`, fact or note stored | 0.5 ms | 1.1-1.4 ms | 14.5-14.9 ms |
-| `recordTrip` (not a client call) | 3.4 ms | 9 ms | 17.9 ms |
-| ignition off + on (not a client call) | 8.5 ms | 12.7 ms | 122 ms |
+| `context("")` | 0.3 ms | 0.7 ms | 4.0 ms |
+| `context(query)` / `recall` | 1.4 ms | 3-5 ms | 23-25 ms |
+| `proactive` | 0.6 ms | 1 ms | 9.3 ms |
+| `hear`, nothing to store | 0.1 ms | 0.4 ms | 2.9 ms |
+| `hear`, fact or note stored | 1.4 ms | 4-5 ms | 14.5-14.9 ms |
+| `recordTrip` (not a client call) | 3.7 ms | 11 ms | 17.9 ms |
+| ignition off + on (not a client call) | 9 ms | 13 ms | 122 ms |
 | first `context(query)` after a restart | 6-10 ms once | | |
 
-Figures move by a millisecond or so between runs. The run also shows one 85 ms `recordTrip`: the benchmark makes
+Figures move by a millisecond or so between runs. The run also shows one 90 ms `recordTrip`: the benchmark makes
 about 1,500 writes without an ignition off, which reaches the 64 MB backstop on the write-ahead log. A car that is
 switched off between drives does not get there.
 
@@ -65,6 +95,8 @@ running on a head unit:
 * `proactive(..., moving)` and `Policy.act_blocked_while_moving` (default `["seat"]`): no seat change while moving.
 * `memory_remember` keeps text as a note when no extraction pattern matches, instead of dropping it.
 * Transactions, schema version, `LatencyRecorder`.
+* Everything under "What it remembers" beyond routines, stated facts and cabin temperature: conversation, live state,
+  contacts and place names, dated recall, passenger scopes, `guest_only`, export, erase, and the stricter cloud masking.
 
 ## Conformance
 

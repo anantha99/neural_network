@@ -54,12 +54,27 @@ Kotlin only; the Python reference was left as it is, and the conformance test st
 - Still open: `hear` blocks the worker when an `LlmClient` is set; a failed platform guest check treats the user
   as a known profile, which now also enrols them.
 
+## Use-case pass (2026-11-12, later the same day)
+
+Kotlin only. Every kind of memory and every shared-car problem in the design table now has an implementation and a
+test: `kotlin/README.md`, "What it remembers". 36 JVM tests; client calls still at or under 5 ms p99 on a build machine.
+
+- New in the core: `Conversation` (RAM only), live state, contact and place names, music likes, dated recall
+  (`TimeRef.kt`), passenger scopes, `guest_only`, `export`, `erasePerson`, `eraseAll`, retention for the audit trail
+  and retired records.
+- Fixed: a forgotten fact and a wiped guest used to stay readable in the audit table, and the forgotten utterance in
+  episodes; a note's text leaked into the cloud packet through its key; two masked values could share one token.
+- New on Android, **not compiled and not run** (no SDK in the session; CI compiles it on a pull request): twelve
+  `ICarMemory` methods, `MediaSignal`, fan speed and seat occupancy in `VehicleSignals`, and the
+  `MEDIA_CONTENT_CONTROL` permission, which must be in the priv-app allowlist or the image will not boot.
+- Not done: learning a toll preference (no signal), looking up what kind of place a coordinate is, SQLCipher.
+
 ## Build and test
 
 ```
 pip install -e .[dev] && python -m pytest -q          # Python reference, 24 tests
 python -m bench.run_bench                              # benchmark table
-cd kotlin && ./gradlew test                               # core + car on the JVM, 22 tests (+2 live, skipped without GEMINI_API_KEY)
+cd kotlin && ./gradlew test                               # core + car on the JVM, 36 tests (+2 live, skipped without GEMINI_API_KEY)
 cd kotlin && ./gradlew :carmem-android:assembleDebug      # needs an Android SDK with platform 35
 ```
 

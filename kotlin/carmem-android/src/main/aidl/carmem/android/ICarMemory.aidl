@@ -32,4 +32,38 @@ interface ICarMemory {
      * milliseconds, the p99 of time spent queued behind other work, and how many calls went over the 50 ms budget.
      */
     String stats();
+
+    // ---- conversation: in memory for five minutes or the drive, never stored ----
+    /** What the assistant said back. hear() records the driver's side. */
+    void said(String text);
+    /** Something concrete came up (a search result, a contact): kind is "place", "person" or "thing". */
+    void mention(String kind, String name);
+    /** What "there", "him", "it" and "here" in this text refer to right now. */
+    String resolve(String text);
+    /** The recent turns and what is in focus. */
+    String conversation();
+
+    // ---- the car right now: read when asked, never stored ----
+    /** Live vehicle state as the memory sees it: location, moving, cabin settings, passengers, destination. */
+    String state();
+    /** Navigation started. kind may be null ("restaurant", "gym"); lat / lon are NaN when unknown. */
+    void setDestination(String name, @nullable String kind, double lat, double lon);
+
+    // ---- named things ----
+    /** Name the place the car is at now. Returns {"place": name}, or {"place": null} before the first location fix. */
+    String namePlace(String name);
+    /** Named places with kind and coordinates. For use on the device only: coordinates never go in a cloud packet. */
+    String places();
+
+    // ---- people ----
+    /** An identity signal from a component that has one: kind "key_fob", "face", "voice" or "phone"; role "driver" or "passenger". */
+    void observeOccupant(String kind, String value, double confidence, String role);
+    /** context() for a passenger. A speaker the car cannot identify gets a memory of their own that ends with the drive. */
+    String contextFor(@nullable String speakerId, String query, String destination);
+
+    // ---- the driver's rights over their memory ----
+    /** Everything held about a person (null = the current driver), with the retention limits that apply. */
+    String exportMemory(@nullable String personId);
+    /** Delete a person and everything about them, or with null everything in this memory: for resale or the end of a lease. */
+    String erase(@nullable String personId);
 }

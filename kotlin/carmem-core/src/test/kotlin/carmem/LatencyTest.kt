@@ -9,7 +9,8 @@ import kotlin.test.assertTrue
 
 /**
  * Latency of every call an assistant makes, against a file-backed database holding six months of a
- * two-driver household: about 1,500 trips, 2,500 utterances and 80 stated facts.
+ * two-driver household: about 1,100 trips and 3,400 utterances, of which the six-week retention window
+ * keeps about 1,000 episodes.
  *
  * Run with `gradle :carmem-core:latency`; it is tagged out of `gradle test` because timing depends on
  * the machine. `-Dcarmem.latency.budgetMs` (default 50) is the p99 limit per call. A head unit is

@@ -17,6 +17,9 @@ import carmem.SqlDriver
 class AndroidSqlDriver(path: String) : SqlDriver {
     private val conn: SQLiteConnection = BundledSQLiteDriver().open(path).also {
         it.execSQL("PRAGMA journal_mode=WAL")
+        // With a write-ahead log, NORMAL keeps the database consistent through a power cut and skips the fsync on
+        // every commit, which on flash is most of a write's latency. A cut can lose the last few commits, not corrupt.
+        it.execSQL("PRAGMA synchronous=NORMAL")
         it.execSQL("PRAGMA foreign_keys=ON")
     }
 

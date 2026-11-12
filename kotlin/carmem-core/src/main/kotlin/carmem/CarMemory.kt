@@ -37,6 +37,10 @@ class CarMemory(
     private val extractor: Extractor = if (llm != null) LlmExtractor(llm) else RuleExtractor()
     private var session: Session? = null
 
+    /** The car's state as last reported by whatever feeds it (CarSession does): used when a caller does not say. */
+    var carMoving: Boolean = false
+    var carLocation: String? = null
+
     // ------------------------------------------------------------ identity / session
     // Every call that writes runs as one transaction: one commit per call, and nothing half applied if it fails.
     fun enroll(id: String, name: String, bindings: List<Pair<String, String>> = emptyList()): Person = store.tx { Person(id, name).also { identity.enroll(it, bindings) } }
@@ -156,8 +160,8 @@ class CarMemory(
     }
 
     // ------------------------------------------------------------ acting
-    /** What the car would do now. Pass `moving = true` while the car is in motion: see [Policy.act_blocked_while_moving]. */
-    fun proactive(now: LocalDateTime = clock(), location: String? = null, moving: Boolean = false): List<Proposal> = store.tx {
+    /** What the car would do now. While the car is in motion some categories are held back: see [Policy.act_blocked_while_moving]. */
+    fun proactive(now: LocalDateTime = clock(), location: String? = null, moving: Boolean = carMoving): List<Proposal> = store.tx {
         val s = session ?: return@tx emptyList()
         val props = consolidator.proposals(driver(), now, s.suppressed, location, moving)
         val known = props.map { it.recordId }.toSet()
@@ -292,7 +296,7 @@ class CarMemory(
             "memory_forget" -> forget(str("target") ?: "")
             "memory_correct" -> correct(str("answer") ?: "no")
             "memory_explain" -> explain(str("record_id") ?: "")
-            "memory_proactive" -> buildJsonObject { put("proposals", JsonArray(proactive(location = str("location")).map { p -> buildJsonObject { put("id", p.id); put("kind", p.kind); put("record_id", p.recordId); put("scope", p.scope); put("tier", p.tier.wire); put("text", p.text); put("action", JsonObject(p.action)) } })) }
+            "memory_proactive" -> buildJsonObject { put("proposals", JsonArray(proactive(location = str("location") ?: carLocation).map { p -> buildJsonObject { put("id", p.id); put("kind", p.kind); put("record_id", p.recordId); put("scope", p.scope); put("tier", p.tier.wire); put("text", p.text); put("action", JsonObject(p.action)) } })) }
             else -> throw IllegalArgumentException("unknown tool $name")
         }
     }

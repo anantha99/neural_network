@@ -35,12 +35,30 @@ LangMem are in `docs/DESIGN.md`; read it first.
 | Cloud model (dev) | `carmem-android/GeminiLlmClient.kt` | Gemma 4 (`gemma-4-26b-a4b-it`) on the Gemini API, schema enforced server-side, retries 429/5xx twice. Used when `gemini.key` (key, optional second line = model) is in `noBackupFilesDir` and no `.litertlm` model is. Verified on the emulator 2026-11-03. Sends raw utterances to Google: development only. `LiveLlmTest` runs the same path on the JVM when `GEMINI_API_KEY` is set. |
 | Cloud bridge | not started | Koog-based client: send `context(query, "cloud").render()`, execute tool calls locally with `handleTool`, `unmask` the reply. |
 
+## Head-unit readiness pass (2026-11-12)
+
+Kotlin only; the Python reference was left as it is, and the conformance test still passes.
+
+- Latency: every client call is under 5 ms at p99 on a build machine against a six-month database (was up to
+  25 ms). Table and causes in `kotlin/README.md`; run `./gradlew :carmem-core:latency`. Not yet measured on a
+  head unit: use `ICarMemory.stats()` there.
+- Fixed from the lists below: nobody enrolled (the profile is enrolled on first sight), routines keyed on place
+  names that change (`renamePlace`), no motion input (seat changes withheld while moving).
+- New findings, fixed: every location fix on the road created a place, so the place list grew with every
+  kilometre; places were saved only in `onDestroy`; proposals were broadcast to the host's own package only;
+  `memory_remember` dropped text no rule matched.
+- **Not compiled:** this session had no Android SDK. `carmem-core` and `carmem-car` are built and tested (22 tests).
+  The edits in `carmem-android` and `carmem-devhost` (`CarMemoryService`, `AndroidSqlDriver`, `ICarMemory.aidl`,
+  `ProbeReceiver`) were reviewed by hand only. Build them before anything else.
+- Still open: `hear` blocks the worker when an `LlmClient` is set; a failed platform guest check treats the user
+  as a known profile, which now also enrols them.
+
 ## Build and test
 
 ```
 pip install -e .[dev] && python -m pytest -q          # Python reference, 24 tests
 python -m bench.run_bench                              # benchmark table
-cd kotlin && ./gradlew test                               # core + car on the JVM, 10 tests (+2 live, skipped without GEMINI_API_KEY)
+cd kotlin && ./gradlew test                               # core + car on the JVM, 22 tests (+2 live, skipped without GEMINI_API_KEY)
 cd kotlin && ./gradlew :carmem-android:assembleDebug      # needs an Android SDK with platform 35
 ```
 

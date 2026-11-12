@@ -302,7 +302,8 @@ class Consolidator(val store: Store, val policy: Policy, val embedder: Embedder 
     fun accept(prop: Proposal, ep: Episode, now: LocalDateTime): JsonObject {
         val ev = Evidence(ep.id, iso(ep.ts), JsonNull, note = "accepted")
         if (prop.kind == "routine") store.getRoutine(prop.recordId)?.let { it.consecutiveNo = 0; it.support += ev; evaluateRoutine(it, now) } ?: return buildJsonObject { put("applied", false) }
-        else store.getFact(prop.recordId)?.let { it.consecutiveNo = 0; it.support += ev; it.updated = iso(now); store.upsertFact(it) } ?: return buildJsonObject { put("applied", false) }
+        // "yes" to a setting is an observation of that value; recorded with no value it would count against the fact
+        else store.getFact(prop.recordId)?.let { it.consecutiveNo = 0; it.support += ev.copy(value = it.value); it.updated = iso(now); store.upsertFact(it) } ?: return buildJsonObject { put("applied", false) }
         return buildJsonObject { put("applied", true); put("record", prop.recordId) }
     }
 

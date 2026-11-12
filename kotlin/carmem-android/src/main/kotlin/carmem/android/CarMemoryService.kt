@@ -37,6 +37,7 @@ class CarMemoryService : Service() {
     private var location: LocationFeed? = null
     private var phone: PhoneSignal? = null
     private var lastCloudPacket: ContextPacket? = null
+    private val latency = carmem.LatencyRecorder()
     private val json = Json { ignoreUnknownKeys = true }
 
     override fun onCreate() {
@@ -51,6 +52,8 @@ class CarMemoryService : Service() {
             ?: File(dir, GeminiLlmClient.KEY_FILE).takeIf { it.exists() }?.readLines()?.map { it.trim() }?.filter { it.isNotEmpty() }
                 ?.takeIf { it.isNotEmpty() }?.let { GeminiLlmClient(it[0], it.getOrElse(1) { GeminiLlmClient.DEFAULT_MODEL }) }
         memory = CarMemory(AndroidSqlDriver(File(dir, "carmem.db").absolutePath), policy, llm)
+        // Places live in the memory database (CarSession restores and saves them). places.tsv is what builds before
+        // that wrote at shutdown; it is read once, and the database copy wins from the first save on.
         val places = PlaceResolver().also { pr -> File(dir, "places.tsv").takeIf { it.exists() }?.let { pr.restore(it.readText()) } }
         session = CarSession(memory, places) { props -> ProposalBus.publish(this, props) }
         handler.post {
@@ -64,34 +67,45 @@ class CarMemoryService : Service() {
     /** Every car event funnels through here onto the worker thread. */
     fun post(e: CarEvent) { Log.d(TAG, "event $e"); handler.post { runCatching { session.onEvent(e) }.onFailure { Log.w(TAG, "event failed: $e", it) } } }
 
-    private fun <T> onWorker(block: () -> T): T {
-        if (Thread.currentThread() == worker) return block()
-        var result: Result<T>? = null
-        val latch = java.util.concurrent.CountDownLatch(1)
-        handler.post { result = runCatching(block); latch.countDown() }
-        latch.await()
-        return result!!.getOrThrow()
+    /** Run a client's call on the worker thread and time it: what the client waited, and how much of that was the queue. */
+    private fun <T> onWorker(name: String, block: () -> T): T {
+        val asked = latency.now()
+        var started = asked
+        try {
+            if (Thread.currentThread() == worker) return block()
+            var result: Result<T>? = null
+            val latch = java.util.concurrent.CountDownLatch(1)
+            handler.post { started = latency.now(); result = runCatching(block); latch.countDown() }
+            latch.await()
+            return result!!.getOrThrow()
+        } finally {
+            latency.record(name, asked, started)
+            val ms = (latency.now() - asked) / 1e6
+            if (ms > latency.budgetMs) Log.w(TAG, "$name took ${ms.toInt()} ms (queued ${((started - asked) / 1e6).toInt()} ms)")
+        }
     }
 
     private val binder = object : ICarMemory.Stub() {
-        override fun hear(text: String, speakerId: String?): String = onWorker { memory.hear(text, speakerId, LocalDateTime.now()).toString() }
-        override fun context(query: String, destination: String): String = onWorker {
+        override fun hear(text: String, speakerId: String?): String = onWorker("hear") { memory.hear(text, speakerId, LocalDateTime.now()).toString() }
+        override fun context(query: String, destination: String): String = onWorker("context") {
             val p = memory.context(query, destination, LocalDateTime.now())
             if (destination == "cloud") lastCloudPacket = p
             buildJsonObject { put("rendered", p.render()); put("packet", p.toJson()) }.toString()
         }
-        override fun recall(query: String, k: Int): String = onWorker { memory.recall(query, k, LocalDateTime.now()).toString() }
-        override fun proactive(location: String?): String = onWorker {
-            JsonArray(memory.proactive(LocalDateTime.now(), location).map { p ->
+        override fun recall(query: String, k: Int): String = onWorker("recall") { memory.recall(query, k, LocalDateTime.now()).toString() }
+        override fun proactive(location: String?): String = onWorker("proactive") {
+            // A caller that does not know where the car is gets the car's own answer; motion comes from the session either way.
+            JsonArray(memory.proactive(LocalDateTime.now(), location ?: session.location).map { p ->
                 buildJsonObject { put("id", p.id); put("kind", p.kind); put("record_id", p.recordId); put("scope", p.scope); put("tier", p.tier.wire); put("text", p.text); put("action", JsonObject(p.action)) }
             }).toString()
         }
-        override fun handleTool(name: String, argsJson: String): String = onWorker { memory.handleTool(name, json.parseToJsonElement(argsJson) as JsonObject).toString() }
-        override fun explain(recordId: String): String = onWorker { memory.explain(recordId).toString() }
-        override fun forget(target: String): String = onWorker { memory.forget(target, LocalDateTime.now()).toString() }
-        override fun snapshot(forCloud: Boolean): String = onWorker { memory.snapshot(forCloud).toString() }
+        override fun handleTool(name: String, argsJson: String): String = onWorker("tool:$name") { memory.handleTool(name, json.parseToJsonElement(argsJson) as JsonObject).toString() }
+        override fun explain(recordId: String): String = onWorker("explain") { memory.explain(recordId).toString() }
+        override fun forget(target: String): String = onWorker("forget") { memory.forget(target, LocalDateTime.now()).toString() }
+        override fun snapshot(forCloud: Boolean): String = onWorker("snapshot") { memory.snapshot(forCloud).toString() }
         override fun unmask(text: String): String = lastCloudPacket?.unmask(text) ?: text
-        override fun enroll(personId: String, name: String, bindingsJson: String): String = onWorker {
+        override fun stats(): String = latency.toJson().toString()
+        override fun enroll(personId: String, name: String, bindingsJson: String): String = onWorker("enroll") {
             val bindings = (json.parseToJsonElement(bindingsJson) as JsonArray).map {
                 val b = it as JsonObject
                 (b["kind"] as JsonPrimitive).content to (b["value"] as JsonPrimitive).content
@@ -121,7 +135,7 @@ class CarMemoryService : Service() {
     override fun onDestroy() {
         handler.post {
             signals?.stop(); location?.stop(); phone?.stop()
-            File(noBackupFilesDir, "places.tsv").writeText(session.places.snapshot())
+            session.persistPlaces()   // already saved after every trip; this only catches dwell counted since
             memory.close()
             (llm as? AutoCloseable)?.close()
         }
@@ -138,11 +152,19 @@ class CarMemoryService : Service() {
     }
 }
 
-/** Proposals go out as a local broadcast the assistant UI / TTS layer subscribes to. */
+/**
+ * Proposals go out as a broadcast the assistant UI / TTS layer subscribes to.
+ *
+ * Sent twice: to the hosting app itself, and to any app that holds the signature permission the service is bound
+ * with, so an assistant in its own package receives them. That assistant registers a receiver for [ACTION] at
+ * runtime (a manifest receiver does not get implicit broadcasts) and declares `uses-permission` [PERMISSION].
+ */
 object ProposalBus {
     const val ACTION = "carmem.android.PROPOSALS"
+    const val PERMISSION = "carmem.permission.BIND_MEMORY"
     fun publish(ctx: android.content.Context, props: List<carmem.Proposal>) {
-        val payload = JsonArray(props.map { p -> buildJsonObject { put("id", p.id); put("kind", p.kind); put("tier", p.tier.wire); put("text", p.text); put("action", JsonObject(p.action)) } })
-        ctx.sendBroadcast(Intent(ACTION).setPackage(ctx.packageName).putExtra("proposals", payload.toString()))
+        val payload = JsonArray(props.map { p -> buildJsonObject { put("id", p.id); put("kind", p.kind); put("record_id", p.recordId); put("tier", p.tier.wire); put("text", p.text); put("action", JsonObject(p.action)) } }).toString()
+        ctx.sendBroadcast(Intent(ACTION).setPackage(ctx.packageName).putExtra("proposals", payload))
+        ctx.sendBroadcast(Intent(ACTION).putExtra("proposals", payload), PERMISSION)
     }
 }

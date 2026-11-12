@@ -61,6 +61,7 @@ class CarSession(
                 segmenter.onEvent(e)
                 // the segmenter has just made a place of wherever the car is parked, if it was not one already
                 lastFix?.let { lastPlace = places.find(it.lat, it.lon) }
+                memory.carMoving = moving; memory.carLocation = location
                 if (e.on) open(e.ts) else close(e.ts)
             }
             is LocationFix -> {
@@ -70,6 +71,7 @@ class CarSession(
                 // would grow the place list (and the cost of every lookup) with every kilometre driven.
                 // The segmenter creates places where trips start and end.
                 lastPlace = places.find(e.lat, e.lon)
+                memory.carMoving = moving; memory.carLocation = location
                 if (sessionOpen && !proposedThisSession) propose(e.ts)
             }
             is SettingChanged -> segmenter.onEvent(e)

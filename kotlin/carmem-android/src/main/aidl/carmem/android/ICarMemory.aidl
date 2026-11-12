@@ -27,4 +27,9 @@ interface ICarMemory {
      * Until someone is enrolled every driver resolves as a guest, and guests never form memory.
      */
     String enroll(String personId, String name, String bindingsJson);
+    /**
+     * Per-call latency measured inside the service since it started: for each call, count, p50/p95/p99/max in
+     * milliseconds, the p99 of time spent queued behind other work, and how many calls went over the 50 ms budget.
+     */
+    String stats();
 }

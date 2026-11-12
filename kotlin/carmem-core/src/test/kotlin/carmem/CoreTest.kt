@@ -170,6 +170,10 @@ class CoreTest {
         fun keys(moving: Boolean) = mem.proactive(t, "home", moving).filter { it.kind == "fact" }.map { it.action["key"]!!.render() }.toSet()
         assertEquals(setOf("cabin_temp", "seat_position"), keys(moving = false))
         assertEquals(setOf("cabin_temp"), keys(moving = true))
+        // "yes" to a setting counts for it, however often it is said
+        repeat(3) { mem.proactive(t, "home"); mem.hear("yes", now = t.plusMinutes(1L + it)) }
+        mem.recordTrip(Trip(t, t.plusMinutes(15), "home", "work", listOf("asha"), mapOf("cabin_temp" to JsonPrimitive(21.0), "seat_position" to JsonPrimitive("profile-2"))))
+        assertEquals(setOf("cabin_temp", "seat_position"), mem.store.facts(listOf("asha"), states = listOf(State.CONFIRMED)).map { it.key }.toSet())
     }
 
     @Test fun `the remember tool keeps what the assistant sends even when no pattern matches`() {

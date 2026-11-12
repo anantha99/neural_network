@@ -26,7 +26,7 @@ adb root && adb remount
 ## Install
 
 ```
-cd kotlin && gradle :carmem-devhost:assembleDebug
+cd kotlin && ./gradlew :carmem-devhost:assembleDebug
 adb shell mkdir -p /system/priv-app/CarMemDevHost
 adb push carmem-devhost/build/outputs/apk/debug/carmem-devhost-debug.apk /system/priv-app/CarMemDevHost/CarMemDevHost.apk
 adb push carmem-devhost/privapp-permissions-carmem.xml /system/etc/permissions/

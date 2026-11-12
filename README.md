@@ -1,5 +1,8 @@
 # carmem — memory for in-car LLM assistants
 
+[![CI](https://github.com/anantha99/neural_network/actions/workflows/ci.yml/badge.svg)](https://github.com/anantha99/neural_network/actions/workflows/ci.yml)
+MIT licensed. Status: 0.1, the Python reference and Kotlin core are complete; the Android Automotive module is experimental.
+
 `carmem` is an on-device, identity-scoped memory layer for assistants that live in a
 shared car. It is written for the ways a car differs from a chat app:
 
@@ -111,8 +114,39 @@ cars in Ann Arbor, Nov 2017 - Nov 2018, Apache-2.0) instead of generated ones: 7
 driver at a time, plus two-driver households composed from pairs of real cars with the
 utterances and traps above placed at real trip times. Every event is labelled `real`,
 `composed`, `real_context` or `synthetic`, and routines are scored on whether they come true
-in the following weeks. Use cases and method: `docs/DATASET_USECASES.md`; results:
+in the following weeks. Use cases and method: `docs/DATASET_USECASES.md`; full results:
 `docs/REAL_BENCH_RESULTS.md`.
+
+Headline numbers on real trips, default policy:
+
+```
+proposal precision (routine proposed vs trip actually taken)   0.95  (n=61)
+held-out routine precision (confirmed at day 28, true in next 56 days)   0.29  (n=126)
+irregular places wrongly promoted                              0 of 391
+proposals after a routine stopped                              3 of 80 stopped routines
+cross-person leaks across 6 composed households                0
+"forget that": right routine removed, re-mined inside tombstone   6/6, 0
+child seat / school sent to cloud unmasked                      0/6
+```
+
+Read the two precision numbers together. Proposals are right 95% of the time when the car
+is at a routine's origin in its slot. Held-out precision is low because VED logs only a
+sample of each car's trips, a median of two to three a week, so a routine that is real
+often does not reach the ratio threshold in the logged subset and a confirmed one is often
+unobserved in the check window. A head unit that sees every trip will score higher; the
+synthetic household above is the upper bound. Lowering the confirm ratio to 0.5 doubles the
+commute routines found and costs ten points of proposal precision; the policy is a file.
+
+Known limitations the real benchmark surfaced, none of them hidden by the numbers above:
+
+* No motion input yet, so an act-tier setting could change mid-trip (U24). The head unit has
+  the signal; the gate is not wired.
+* No passenger-scoped writes: a passenger's utterance is attributed, but seat occupancy
+  does not open a scope (U21).
+* No keys for charging, refuelling, maintenance, drive mode, volume or quiet hours, and no
+  saved-place surface (U26, U27, U30 to U34).
+* Fan proposals are poor (precision 0.19) because fan level depends on outside temperature,
+  which the policy does not condition on yet (U19).
 
 ## Kotlin core and conformance fixtures
 
@@ -126,7 +160,7 @@ package stays the reference and the research harness; the policy is tuned here f
 re-exported.
 
 ```
-cd kotlin && gradle test          # carmem-core + carmem-car on the JVM
+cd kotlin && ./gradlew test      # carmem-core + carmem-car on the JVM; needs JDK 21
 ```
 
 ## Android Automotive module
@@ -140,7 +174,8 @@ It is tested end to end on the JVM. `kotlin/carmem-android` is the thin Android 
 a foreground bound service exposing `ICarMemory` over AIDL with wire-schema JSON, a
 `SqlDriver` over the AndroidX bundled SQLite driver, and adapters for vehicle properties,
 occupant zones, location and Bluetooth. It is included in the Gradle build only when an
-Android SDK is configured. See `kotlin/carmem-android/README.md` for permissions and
+Android SDK is configured, and it is experimental: it runs on the AAOS 15 emulator, has not
+been run on a vehicle, and relies on file-based encryption only. See `kotlin/carmem-android/README.md` for permissions and
 deployment notes.
 
 ## Layout
@@ -165,9 +200,20 @@ kotlin/carmem-core  Kotlin port with conformance + unit tests (see kotlin/README
 kotlin/carmem-car   trip segmentation, places, session orchestration (JVM, tested)
 kotlin/carmem-android  AAOS service, AIDL, SQLite driver, signal adapters (needs SDK)
 tests/              pytest suite (python -m pytest)
+.github/workflows/  CI: pytest + synthetic benchmark on 3.10 and 3.12, Kotlin JVM tests on JDK 21
 docs/DESIGN.md      the design in detail
 docs/HANDOFF.md     state of every piece, build steps, decisions, what to do next
 ```
+
+## Contributing and license
+
+Run `python -m pytest -q` and `cd kotlin && ./gradlew test` before opening a pull request.
+A change to the policy or the consolidation rules must re-export the fixtures
+(`python -m bench.export_fixtures`) so the Kotlin conformance test stays in step. Issues
+with a failing replay or a real-trip case the miner gets wrong are the most useful kind.
+
+carmem is released under the MIT license (`LICENSE`). The derived VED trip table in
+`data/ved/` is Apache-2.0 from its authors; the NHTS figures in `data/nhts/` are public domain.
 
 The two notebooks at the root (`forward_propogation.ipynb`, `neural_network_using_sklearn.ipynb`)
 predate this project and are kept as-is.

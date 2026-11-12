@@ -8,8 +8,8 @@ Three modules:
 
 ```
 cd kotlin
-gradle test                       # core + car
-gradle :carmem-android:assembleDebug   # with ANDROID_HOME set
+./gradlew test                     # core + car
+./gradlew :carmem-android:assembleDebug   # with ANDROID_HOME set
 ```
 
 ## Conformance

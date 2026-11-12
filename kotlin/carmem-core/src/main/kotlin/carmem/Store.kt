@@ -105,17 +105,20 @@ class Store(private val db: SqlDriver) {
     }
 
     /** The newest episodes in scope as (id, timestamp): answered from the index alone, so ranking can use its cache. */
-    fun episodeIndex(scopes: List<String>, since: LocalDateTime, limit: Int): List<Pair<Long, LocalDateTime>> {
+    fun episodeIndex(scopes: List<String>, since: LocalDateTime, limit: Int, until: LocalDateTime? = null): List<Pair<Long, LocalDateTime>> {
         if (scopes.isEmpty()) return emptyList()
-        val args = mutableListOf<Any?>(); args.addAll(scopes); args += iso(since); args += limit
-        return db.query("SELECT id, ts FROM episodes WHERE scope IN (${scopes.joinToString(",") { "?" }}) AND ts >= ? ORDER BY ts DESC LIMIT ?", args)
+        val args = mutableListOf<Any?>(); args.addAll(scopes); args += iso(since)
+        if (until != null) args += iso(until)
+        args += limit
+        return db.query("SELECT id, ts FROM episodes WHERE scope IN (${scopes.joinToString(",") { "?" }}) AND ts >= ?${if (until != null) " AND ts < ?" else ""} ORDER BY ts DESC LIMIT ?", args)
             .map { r -> (r["id"] as Number).toLong() to parseIso(r["ts"] as String) }
     }
-    /** Text and vector for ranking; the payload is not read or parsed. */
-    fun episodeVectors(ids: List<Long>): Map<Long, Pair<String, DoubleArray?>> = ids.chunked(500).flatMap { part ->
-        db.query("SELECT id, text, embedding FROM episodes WHERE id IN (${part.joinToString(",") { "?" }})", part)
-            .map { r -> (r["id"] as Number).toLong() to ((r["text"] as String) to vector(r["embedding"])) }
+    /** Kind, text and vector for ranking; the payload is not read or parsed. */
+    fun episodeVectors(ids: List<Long>): Map<Long, Triple<String, String, DoubleArray?>> = ids.chunked(500).flatMap { part ->
+        db.query("SELECT id, kind, text, embedding FROM episodes WHERE id IN (${part.joinToString(",") { "?" }})", part)
+            .map { r -> (r["id"] as Number).toLong() to Triple(r["kind"] as String, r["text"] as String, vector(r["embedding"])) }
     }.toMap()
+    fun deleteEpisodes(ids: List<Long>): Int = ids.chunked(500).sumOf { part -> db.execute("DELETE FROM episodes WHERE id IN (${part.joinToString(",") { "?" }})", part) }
     /** Blob (current) or JSON text (written before schema 2). */
     private fun vector(v: Any?): DoubleArray? = when (v) {
         is ByteArray -> unpackVector(v)
@@ -151,6 +154,11 @@ class Store(private val db: SqlDriver) {
         return db.query(q, args).map(::fact)
     }
     fun deleteFact(id: String) { semanticVersion++; db.execute("DELETE FROM facts WHERE id=?", listOf(id)) }
+    fun deleteRetiredBefore(cutoff: LocalDateTime): Int {
+        semanticVersion++
+        return db.execute("DELETE FROM facts WHERE state='retired' AND updated < ?", listOf(iso(cutoff))) +
+            db.execute("DELETE FROM routines WHERE state='retired' AND last_seen < ?", listOf(iso(cutoff)))
+    }
     fun factTimeline(scope: String, category: String, key: String): List<Fact> =
         db.query("SELECT * FROM facts WHERE scope=? AND category=? AND key=? ORDER BY valid_from, created, seq", listOf(scope, category, key)).map(::fact)
     private fun fact(r: Map<String, Any?>) = Fact(
@@ -207,10 +215,30 @@ class Store(private val db: SqlDriver) {
     fun purgeExpiredTombstones(now: LocalDateTime): Int = db.execute("DELETE FROM tombstones WHERE expires <= ?", listOf(iso(now)))
 
     // ---------------- scope-wide ----------------
+    /** Everything held under a scope, the audit trail included: after this the scope's words appear nowhere. */
     fun purgeScope(scope: String): Map<String, Int> {
         semanticVersion++
-        return listOf("episodes", "facts", "routines", "tombstones").associateWith { db.execute("DELETE FROM $it WHERE scope=?", listOf(scope)) }
+        val out = listOf("episodes", "facts", "routines", "tombstones").associateWith { db.execute("DELETE FROM $it WHERE scope=?", listOf(scope)) }
+        db.execute("DELETE FROM audit WHERE scope=?", listOf(scope))
+        return out
     }
+    /** A person and everything about them: memory, identity bindings and the person record. */
+    fun erasePerson(id: String): Map<String, Int> {
+        val out = purgeScope(id).toMutableMap()
+        out["bindings"] = db.execute("DELETE FROM identity_bindings WHERE person_id=?", listOf(id))
+        out["person"] = db.execute("DELETE FROM persons WHERE id=?", listOf(id))
+        return out
+    }
+    /** Resale, end of lease: every row of every table. The schema stays; nothing else does. */
+    fun eraseAll(): Map<String, Int> {
+        semanticVersion++
+        val out = listOf("episodes", "facts", "routines", "tombstones", "audit", "identity_bindings", "persons").associateWith { db.execute("DELETE FROM $it") }
+        db.execute("DELETE FROM meta WHERE key <> 'schema_version'")
+        return out
+    }
+    fun persons(): List<Person> = db.query("SELECT id FROM persons ORDER BY id").mapNotNull { getPerson(it["id"] as String) }
+    fun bindings(personId: String): List<Pair<String, String>> =
+        db.query("SELECT kind, value FROM identity_bindings WHERE person_id=? ORDER BY kind, value", listOf(personId)).map { (it["kind"] as String) to (it["value"] as String) }
     fun count(table: String): Long = (db.query("SELECT COUNT(*) AS n FROM $table").first()["n"] as Number).toLong()
     fun scopesPresent(): Set<String> =
         listOf("episodes", "facts", "routines").flatMap { t -> db.query("SELECT DISTINCT scope AS s FROM $t").map { it["s"] as String } }.toSet()
@@ -220,4 +248,8 @@ class Store(private val db: SqlDriver) {
         db.execute("INSERT INTO audit(ts,scope,event,detail) VALUES (?,?,?,?)", listOf(iso(ts), scope, event, detail.toString()))
     }
     fun auditLog(limit: Int = 100): List<Map<String, Any?>> = db.query("SELECT * FROM audit ORDER BY id DESC LIMIT ?", listOf(limit))
+    fun auditFor(scope: String): List<Map<String, Any?>> = db.query("SELECT ts, event, detail FROM audit WHERE scope=? ORDER BY id", listOf(scope))
+    /** Remove audit entries of a scope that carry `needle` (a record id), so a forgotten memory leaves no trail. */
+    fun scrubAudit(scope: String, needle: String): Int = db.execute("DELETE FROM audit WHERE scope=? AND instr(detail, ?) > 0", listOf(scope, needle))
+    fun deleteAuditBefore(cutoff: LocalDateTime): Int = db.execute("DELETE FROM audit WHERE ts < ?", listOf(iso(cutoff)))
 }

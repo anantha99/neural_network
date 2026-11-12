@@ -188,7 +188,7 @@ class Consolidator(val store: Store, val policy: Policy, val embedder: Embedder 
         val mod = minuteOf(trip.start)
         val sig = routineSignature(dow, trip.destination)
         if (store.isTombstoned(scope, routineTombstoneKey(trip.destination), now)) {
-            store.audit(now, scope, "routine.blocked_by_tombstone", buildJsonObject { put("signature", sig) })
+            store.audit(now, scope, "routine.blocked_by_tombstone")   // no destination: the driver asked for it to be forgotten
             contradictSlot(scope, trip, ep, now, null)
             return null
         }
@@ -313,13 +313,19 @@ class Consolidator(val store: Store, val policy: Policy, val embedder: Embedder 
             val removed = store.routines(listOf(rt.scope)).filter { normPlace(it.destination) == normPlace(rt.destination) }.map { store.deleteRoutine(it.id); it.id }
             val key = routineTombstoneKey(rt.destination)
             store.addTombstone(rt.scope, key, expires, reason)
-            store.audit(now, rt.scope, "forget.routine", buildJsonObject { put("tombstone", key) })
+            removed.forEach { store.scrubAudit(rt.scope, it) }
+            store.audit(now, rt.scope, "forget.routine", buildJsonObject { put("routines", removed.size) })
             return buildJsonObject { put("forgot", "routine"); put("id", rt.id); put("removed", removed.size); put("description", rt.describe()); put("tombstone_until", iso(expires)) }
         }
         store.getFact(recordId)?.let { f ->
-            store.deleteFact(f.id)
+            // Forgetting removes the fact, every earlier value it had, the utterances it was learned from, and its audit trail.
+            val versions = store.factTimeline(f.scope, f.category, f.key).ifEmpty { listOf(f) }
+            val said = versions.flatMap { v -> (v.support + v.contradictions).map { it.episode_id } }.distinct()
+                .filter { store.getEpisode(it)?.kind == "utterance" }
+            store.deleteEpisodes(said)
+            versions.forEach { store.deleteFact(it.id); store.scrubAudit(f.scope, it.id) }
             store.addTombstone(f.scope, "${f.category}/${f.key}", expires, reason)
-            store.audit(now, f.scope, "forget.fact", buildJsonObject { put("id", f.id); put("fact", f.describe()) })
+            store.audit(now, f.scope, "forget.fact", buildJsonObject { put("category", f.category); put("versions", versions.size) })
             return buildJsonObject { put("forgot", "fact"); put("id", f.id); put("description", f.describe()); put("tombstone_until", iso(expires)) }
         }
         return buildJsonObject { put("forgot", JsonNull) }
@@ -331,10 +337,14 @@ class Consolidator(val store: Store, val policy: Policy, val embedder: Embedder 
     fun maintenance(now: LocalDateTime): Map<String, Int> {
         val removed = store.deleteEpisodesBefore(now.minusDays(days(policy.episodic_retention_days)))
         val expired = store.purgeExpiredTombstones(now)
+
         var retired = 0
         for (r in store.routines(null, listOf(State.CANDIDATE, State.CONFIRMED, State.OBSERVED))) {
             val before = r.state; evaluateRoutine(r, now); if (before != State.RETIRED && r.state == State.RETIRED) retired++
         }
+        // What is not long-term memory has a limit: the audit trail, and whatever was retired or superseded long ago.
+        store.deleteAuditBefore(now.minusDays(days(policy.audit_retention_days)))
+        store.deleteRetiredBefore(now.minusDays(days(policy.retired_retention_days)))
         return mapOf("episodes_removed" to removed, "tombstones_expired" to expired, "routines_retired" to retired)
     }
 

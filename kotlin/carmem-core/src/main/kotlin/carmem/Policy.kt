@@ -35,24 +35,36 @@ data class Policy(
     val vehicle_min_distinct_persons: Int = 2,
     val episodic_retention_days: Int = 42,
 
-    val hard_signal_priority: List<String> = listOf("seat_profile", "phone", "key_fob"),
+    val hard_signal_priority: List<String> = listOf("seat_profile", "phone", "key_fob", "face"),
     val voice_alone_min_confidence: Double = 1.01,
 
     val tiers: Map<String, String> = mapOf(
         "climate" to "act", "seat" to "act", "media" to "act", "route" to "suggest", "route_prefs" to "silent",
         "contacts" to "never", "health" to "never", "home_address" to "silent", "school" to "silent",
-        "children" to "silent", "note" to "silent", "vehicle_fault" to "silent",
+        "children" to "silent", "note" to "silent", "vehicle_fault" to "silent", "place" to "silent",
     ),
     val sensitivity: Map<String, String> = mapOf(
         "health" to "sensitive", "contacts" to "sensitive", "home_address" to "sensitive", "school" to "sensitive",
         "children" to "sensitive", "finance" to "sensitive", "climate" to "public", "seat" to "public", "media" to "personal", "route" to "personal",
-        "route_prefs" to "personal", "note" to "personal", "vehicle_fault" to "public",
+        "route_prefs" to "personal", "note" to "personal", "vehicle_fault" to "public", "place" to "sensitive",
     ),
-    val mask_in_cloud_categories: List<String> = listOf("health", "contacts", "home_address", "school", "children", "finance"),
+    // Private by default: free-text notes and named places can hold anything, so the cloud gets a placeholder for them too.
+    val mask_in_cloud_categories: List<String> = listOf("health", "contacts", "home_address", "school", "children", "finance", "note", "place"),
     val mask_in_cloud_sensitivity: List<String> = listOf("sensitive"),
 
     /** Categories the car must not act on while it is moving, whatever their tier: a seat does not move at speed. */
     val act_blocked_while_moving: List<String> = listOf("seat"),
+
+    /** Conversation memory (recent turns, what "there" and "him" refer to) is kept in RAM for this long and never stored. */
+    val conversation_ttl_minutes: Int = 5,
+    val conversation_max_turns: Int = 12,
+
+    /** Retention for what is not long-term memory: the audit trail, and facts and routines that were retired or superseded. */
+    val audit_retention_days: Int = 90,
+    val retired_retention_days: Int = 180,
+
+    /** Rental and fleet cars: every driver is a guest, nobody is enrolled, nothing outlives the trip. */
+    val guest_only: Boolean = false,
 ) {
     fun tierFor(category: String): Tier = Tier.of(tiers[category] ?: "silent")
     fun sensitivityFor(category: String): String = sensitivity[category] ?: "personal"

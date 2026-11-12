@@ -180,13 +180,14 @@ class CoreTest {
         val mem = make(); val t = LocalDateTime.of(2026, 9, 7, 8, 0)
         mem.ignitionOn(listOf(IdentitySignal("key_fob", "fob-a")), t)
         fun remember(text: String) = mem.handleTool("memory_remember", kotlinx.serialization.json.buildJsonObject { put("text", JsonPrimitive(text)) })
-        assertTrue(remember("I like jazz on the way to work")["stored"].toString().contains("note/"))
+        assertTrue(remember("the side gate sticks unless you lift it")["stored"].toString().contains("note/"))
         assertTrue(remember("my daughter Mia needs her booster seat")["stored"].toString().contains("children/"))
         assertTrue(remember("I prefer 22 degrees")["stored"].toString().contains("climate/cabin_temp"))   // known patterns stay typed
         assertEquals("[]", remember("no")["stored"].toString())                                              // a correction is not a note
-        val local = mem.context("jazz", "local", t).render(); val cloud = mem.context("booster seat", "cloud", t).render()
-        assertTrue("I like jazz on the way to work" in local, local)
-        assertTrue("Mia" !in cloud, cloud)
+        val local = mem.context("side gate", "local", t.plusMinutes(10)).render(); val cloud = mem.context("booster seat side gate", "cloud", t.plusMinutes(10)).render()
+        assertTrue("note/the_side_gate_sticks_unless_you_lift_it = the side gate sticks unless you lift it" in local, local)
+        // private by default: the cloud gets neither a note's text nor the key made from it, in any letter case
+        assertTrue("mia" !in cloud.lowercase() && "gate" !in cloud.lowercase() && "note/(masked) = <note_" in cloud, cloud)
     }
 
     @Test fun `renaming a place carries its routine, evidence and tombstone to the new name`() {

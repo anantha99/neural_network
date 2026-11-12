@@ -12,10 +12,14 @@ import java.time.LocalDateTime
 /** Cabin settings the car can observe and apply, by key. */
 internal val SETTING_CATEGORIES =mapOf("cabin_temp" to "climate", "seat_position" to "seat", "media" to "media", "fan" to "climate")
 
-private class Session(val occupancy: Occupancy, var started: LocalDateTime) {
+private class Session(val occupancy: Occupancy, var started: LocalDateTime, policy: Policy) {
     val pending = mutableListOf<Proposal>()
     val suppressed = mutableSetOf<String>()
     val lastStated = mutableListOf<String>()
+    /** Recent turns and what pronouns refer to: in memory for this drive only. */
+    val conversation = Conversation(java.time.Duration.ofMinutes(policy.conversation_ttl_minutes.toLong()), policy.conversation_max_turns)
+    /** Speakers the car cannot identify get a guest scope of their own for the drive: speaker id -> scope. */
+    val guestSpeakers = mutableMapOf<String, String>()
 }
 
 /**
@@ -41,6 +45,22 @@ class CarMemory(
     var carMoving: Boolean = false
     var carLocation: String? = null
 
+    /**
+     * Live vehicle state: where the car is, what the cabin is set to, who is seated. Held in memory, shown in the
+     * context packet, never written to the database. Whoever reads the car sets it; null removes a key.
+     */
+    private val live = linkedMapOf<String, String>()
+    fun setLive(key: String, value: String?) { if (value == null) live.remove(key) else live[key] = value }
+    fun liveState(): Map<String, String> = live.toMap()
+
+    // Places belong to the car pipeline, which knows coordinates; the memory only knows names. These connect the two.
+    /** Name the place the car is at now. Returns the name it now has, or null when the car does not know where it is. */
+    var placeNamer: ((name: String, at: LocalDateTime) -> String?)? = null
+    /** Names of the places the car knows by name. */
+    var knownPlaces: (() -> List<String>)? = null
+    /** Called after everything was erased, so the place list goes too. */
+    var onErased: (() -> Unit)? = null
+
     // ------------------------------------------------------------ identity / session
     // Every call that writes runs as one transaction: one commit per call, and nothing half applied if it fails.
     fun enroll(id: String, name: String, bindings: List<Pair<String, String>> = emptyList()): Person = store.tx { Person(id, name).also { identity.enroll(it, bindings) } }
@@ -49,7 +69,7 @@ class CarMemory(
     fun ignitionOn(signals: List<IdentitySignal>, now: LocalDateTime = clock()): Occupancy = store.tx {
         if (session != null) ignitionOff(now)
         val occ = identity.resolve(signals, now)
-        session = Session(occ, now)
+        session = Session(occ, now, policy)
         occ
     }
 
@@ -108,13 +128,55 @@ class CarMemory(
 
     /** Process one utterance: driving-time intents first, then extraction. */
     fun hear(text: String, speakerId: String? = null, now: LocalDateTime = clock()): JsonObject {
-        val scope = speakerId ?: driver()
+        val scope = scopeFor(speakerId)
         // The utterance is committed first, and a model-backed extractor runs outside any transaction: it can take seconds.
         val ep = store.addEpisode(scope, "utterance", now, text, buildJsonObject { put("speaker", scope) }, embedder.embed(text))
         val intent = detectIntent(text)
         val candidates = if (intent.name == "none") extractor.extract(text) else emptyList()
         val s = session
-        return store.tx { buildJsonObject {
+        s?.conversation?.add(now, speakerLabel(scope), text)
+        val result = hearTx(scope, intent, candidates, ep, s, now)
+        // What the driver asked to forget should not live on in the request that asked for it.
+        if (((result["forget"] as? JsonObject)?.get("forgot") as? JsonPrimitive)?.content == "fact") store.deleteEpisodes(listOf(ep.id))
+        noteMentions(scope, text, now)
+        return result
+    }
+
+    /**
+     * Whose memory an utterance belongs to. No speaker means the driver. A known person speaks for themselves. Anyone
+     * else (a passenger the car cannot identify) gets a guest scope that is wiped at ignition off, so what a
+     * passenger says never becomes the driver's memory and never outlives the trip.
+     */
+    private fun scopeFor(speakerId: String?): String {
+        val s = session
+        if (speakerId == null || speakerId == s?.occupancy?.driverId) return driver()
+        if (store.getPerson(speakerId) != null) return speakerId
+        return (s ?: error("no session: call ignitionOn() first")).guestSpeakers.getOrPut(speakerId) { GUEST_PREFIX + newId("p").substring(2) }
+    }
+
+    private fun speakerLabel(scope: String): String = when {
+        scope == session?.occupancy?.driverId -> "driver"
+        isGuest(scope) -> "passenger"
+        else -> "passenger (${store.getPerson(scope)?.name ?: scope})"
+    }
+
+    /** People and places this text names, taken from what the speaker's memory already knows, become what pronouns refer to. */
+    private fun noteMentions(scope: String, text: String, now: LocalDateTime) {
+        val c = session?.conversation ?: return
+        val spoken = " " + tokenize(text).joinToString(" ") + " "
+        fun has(phrase: String) = tokenize(phrase).let { it.isNotEmpty() && (" " + it.joinToString(" ") + " ") in spoken }
+        val sem = contextBuilder.semanticFor(scope)
+        for (f in sem.facts) when (f.category) {
+            "contacts" -> if (has(f.key.replace('_', ' ')) || has(f.value.render())) c.mention(now, "person", f.value.render())
+            "place" -> if (has(f.key.replace('_', ' ')) || has(f.value.render())) c.mention(now, "place", f.key.replace('_', ' '))
+            "home_address", "school" -> if (has(f.key.replace('_', ' ')) || has(f.value.render())) c.mention(now, "place", f.value.render())
+        }
+        for (r in sem.routines) if (has(r.destination)) c.mention(now, "place", r.destination)
+        if (scope == session?.occupancy?.driverId && !isGuest(scope)) for (p in knownPlaces?.invoke().orEmpty()) if (has(p)) c.mention(now, "place", p)
+    }
+
+    private fun hearTx(scope: String, intent: Intent, candidates: List<Candidate>, ep: Episode, s: Session?, now: LocalDateTime): JsonObject =
+        store.tx { buildJsonObject {
             put("intent", intent.name); put("episode", ep.id)
             when (intent.name) {
                 "reject" -> {
@@ -142,9 +204,39 @@ class CarMemory(
                     put("explanation", if (rid != null) explain(rid) else buildJsonObject { put("record", JsonNull) })
                     put("stored", JsonArray(emptyList()))
                 }
+                "name_place" -> {
+                    val named = placeNamer?.invoke(intent.target ?: "", now)
+                    put("place", named?.let { JsonPrimitive(it) } ?: JsonNull)
+                    if (named == null) put("reason", "the car does not know where it is")
+                    else s?.conversation?.mention(now, "place", named)
+                    put("stored", JsonArray(emptyList()))
+                }
                 else -> put("stored", JsonArray(candidates.map { applyCandidate(scope, it, ep, now) }))
             }
         } }
+
+    // ------------------------------------------------------------ conversation (in memory, this drive only)
+    /** What the assistant said back. Together with [hear] this is the conversation a follow-up refers to. */
+    fun said(text: String, now: LocalDateTime = clock()) {
+        val s = session ?: return
+        s.conversation.add(now, "assistant", text)
+        noteMentions(s.occupancy.driverId, text, now)
+    }
+
+    /** The assistant resolved something concrete (a search result, a contact): make it what "there" or "him" means. */
+    fun mention(kind: String, name: String, now: LocalDateTime = clock()) { session?.conversation?.mention(now, kind, name) }
+
+    /** What the referring words in `text` point at right now: "take me there", "call him", "how far is it from here". */
+    fun resolve(text: String, now: LocalDateTime = clock()): JsonObject {
+        val refs = session?.conversation?.resolve(text, now).orEmpty().map { (phrase, f) -> buildJsonObject { put("phrase", phrase); put("kind", f.kind); put("name", f.name) } }.toMutableList()
+        if (Regex("""\bhere\b""", RegexOption.IGNORE_CASE).containsMatchIn(text)) live["location"]?.let { refs += buildJsonObject { put("phrase", "here"); put("kind", "place"); put("name", it) } }
+        return buildJsonObject { put("references", JsonArray(refs)) }
+    }
+
+    fun conversation(now: LocalDateTime = clock()): JsonObject = buildJsonObject {
+        val c = session?.conversation
+        put("turns", JsonArray(c?.turns(now).orEmpty().map { t -> buildJsonObject { put("ts", iso(t.ts)); put("speaker", t.speaker); put("text", t.text) } }))
+        put("focus", JsonArray(c?.inFocus(now).orEmpty().map { f -> buildJsonObject { put("kind", f.kind); put("name", f.name) } }))
     }
 
     private fun applyCandidate(scope: String, c: Candidate, ep: Episode, now: LocalDateTime): JsonObject {
@@ -166,7 +258,9 @@ class CarMemory(
         val props = consolidator.proposals(driver(), now, s.suppressed, location, moving)
         val known = props.map { it.recordId }.toSet()
         s.pending.retainAll { it.recordId !in known }; s.pending += props
-        if (props.isNotEmpty()) store.audit(now, driver(), "proactive", JsonArray(props.map { JsonPrimitive(it.text) }))
+        // record ids, not wording: the audit trail of a memory can then be removed with the memory
+        if (props.isNotEmpty()) store.audit(now, driver(), "proactive", JsonArray(props.map { JsonPrimitive(it.recordId) }))
+        props.filter { it.kind == "routine" }.forEach { p -> (p.action["destination"] as? JsonPrimitive)?.content?.let { s.conversation.mention(now, "place", it) } }
         props
     }
 
@@ -179,11 +273,27 @@ class CarMemory(
     fun correct(answer: String, now: LocalDateTime = clock()) = hear(if (answer.trim().lowercase().startsWith("n")) "no" else "yes", now = now)
 
     // ------------------------------------------------------------ read side
-    fun context(query: String = "", destination: String = "local", now: LocalDateTime = clock()): ContextPacket =
-        contextBuilder.build(session?.occupancy ?: Occupancy("nobody", isGuest = true), query, destination, now)
+    /**
+     * Everything the assistant should know for this turn. `speakerId` asks for a passenger's memory instead of the
+     * driver's; a speaker the car cannot identify gets an empty one. Place names and the car's location are the
+     * driver's, so only an identified driver's packet carries them.
+     */
+    fun context(query: String = "", destination: String = "local", now: LocalDateTime = clock(), speakerId: String? = null): ContextPacket {
+        val s = session
+        val occ = when {
+            s == null -> Occupancy("nobody", isGuest = true)
+            speakerId == null || speakerId == s.occupancy.driverId -> s.occupancy
+            else -> scopeFor(speakerId).let { Occupancy(it, isGuest = isGuest(it)) }
+        }
+        val owner = s != null && occ.driverId == s.occupancy.driverId && !occ.isGuest
+        return contextBuilder.build(occ, query, destination, now,
+            places = if (owner) knownPlaces?.invoke().orEmpty() else emptyList(),
+            live = if (owner) live.toMap() else live.filterKeys { it != "location" && it != "destination" },
+            turns = s?.conversation?.turns(now).orEmpty(), focus = s?.conversation?.inFocus(now).orEmpty())
+    }
 
-    fun recall(query: String, k: Int = 6, now: LocalDateTime = clock()): JsonObject {
-        val d = context(query, "local", now).toJson()
+    fun recall(query: String, k: Int = 6, now: LocalDateTime = clock(), speakerId: String? = null): JsonObject {
+        val d = context(query, "local", now, speakerId).toJson()
         return JsonObject(d.toMutableMap().apply {
             this["facts"] = JsonArray((d["facts"] as JsonArray).take(k)); this["episodes"] = JsonArray((d["episodes"] as JsonArray).take(k))
         })
@@ -307,10 +417,53 @@ class CarMemory(
     fun snapshot(forCloud: Boolean = false): JsonObject = buildJsonObject {
         put("facts", JsonArray(store.facts(null, states = listOf(State.CONFIRMED, State.CANDIDATE))
             .filter { !isGuest(it.scope) && !(forCloud && policy.maskedInCloud(it.category, it.sensitivity)) }
-            .map { f -> buildJsonObject { put("id", f.id); put("scope", f.scope); put("fact", f.describe()); put("source", f.source); put("state", f.state.wire) } }))
+            .map { f -> buildJsonObject { put("id", f.id); put("scope", f.scope); put("fact", f.describe()); put("source", f.source); put("state", f.state.wire); put("sensitivity", f.sensitivity) } }))
         put("routines", JsonArray(store.routines(null, listOf(State.CONFIRMED, State.CANDIDATE)).filter { !isGuest(it.scope) }
             .map { r -> buildJsonObject { put("id", r.id); put("scope", r.scope); put("routine", r.describe()); put("state", r.state.wire); r.stats.forEach { (k, v) -> put(k, v) } } }))
         put("tombstones", JsonArray(store.tombstones().map { t -> buildJsonObject { put("scope", t["scope"] as String); put("signature", t["signature"] as String) } }))
+    }
+
+    // ------------------------------------------------------------ the driver's rights over their memory
+    /** Everything held about a person, in one document: what "show me what you know about me" returns. */
+    fun export(personId: String? = null): JsonObject {
+        val id = personId ?: driver()
+        fun ev(list: List<Evidence>) = JsonArray(list.map { e -> buildJsonObject { put("ts", e.ts); put("note", e.note); put("value", e.value) } })
+        return buildJsonObject {
+            put("person", store.getPerson(id)?.let { p -> buildJsonObject { put("id", p.id); put("name", p.name) } } ?: JsonNull)
+            put("identity_bindings", JsonArray(store.bindings(id).map { (k, v) -> buildJsonObject { put("kind", k); put("value", v) } }))
+            put("facts", JsonArray(store.facts(listOf(id)).map { f -> buildJsonObject {
+                put("id", f.id); put("category", f.category); put("key", f.key); put("value", f.value); put("condition", f.condition); put("state", f.state.wire)
+                put("source", f.source); put("sensitivity", f.sensitivity); put("valid_from", f.validFrom); put("valid_until", f.validUntil); put("evidence", ev(f.support)) } }))
+            put("routines", JsonArray(store.routines(listOf(id)).map { r -> buildJsonObject { put("id", r.id); put("routine", r.describe()); put("state", r.state.wire); put("first_seen", r.firstSeen); put("last_seen", r.lastSeen); put("evidence", ev(r.support)) } }))
+            put("episodes", JsonArray(store.episodes(listOf(id), limit = 100_000).map { (e, _) -> buildJsonObject { put("ts", iso(e.ts)); put("kind", e.kind); put("text", e.text) } }))
+            put("forgotten", JsonArray(store.tombstones(id).map { t -> buildJsonObject { put("what", t["signature"] as String); put("until", t["expires"] as String) } }))
+            put("audit", JsonArray(store.auditFor(id).map { a -> buildJsonObject { put("ts", a["ts"] as String); put("event", a["event"] as String); put("detail", a["detail"] as String) } }))
+            put("places", JsonArray((if (id == session?.occupancy?.driverId || session == null) knownPlaces?.invoke().orEmpty() else emptyList()).map { JsonPrimitive(it) }))
+            put("retention", buildJsonObject {
+                put("episodes_days", policy.episodic_retention_days); put("audit_days", policy.audit_retention_days)
+                put("retired_days", policy.retired_retention_days); put("forgotten_days", policy.tombstone_days); put("conversation_minutes", policy.conversation_ttl_minutes)
+            })
+        }
+    }
+
+    /** Delete a person and everything about them. When nobody is left, the place list goes as well. */
+    fun erasePerson(personId: String, now: LocalDateTime = clock()): JsonObject {
+        val removed = store.tx { store.erasePerson(personId) }
+        if (session?.occupancy?.scopes?.contains(personId) == true) session = null
+        contextBuilder.invalidate()
+        val last = store.persons().isEmpty()
+        if (last) { live.clear(); onErased?.invoke() }
+        return buildJsonObject { put("erased", personId); removed.forEach { (k, v) -> put(k, v) }; put("places_cleared", last) }
+    }
+
+    /** Resale, end of lease, factory reset: every person, memory, place and log entry. Nothing is kept. */
+    fun eraseAll(): JsonObject {
+        val removed = store.tx { store.eraseAll() }
+        session = null; live.clear(); carLocation = null
+        contextBuilder.invalidate()
+        onErased?.invoke()
+        store.checkpoint()
+        return buildJsonObject { put("erased", "everything"); removed.forEach { (k, v) -> put(k, v) } }
     }
 
     fun close() = store.close()

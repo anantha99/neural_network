@@ -4,7 +4,7 @@ import kotlinx.serialization.json.buildJsonObject
 import kotlinx.serialization.json.put
 import java.time.LocalDateTime
 
-private val HARD = setOf("seat_profile", "phone", "key_fob")
+private val HARD = setOf("seat_profile", "phone", "key_fob", "face")
 private val SOFT = setOf("voice")
 
 class IdentityResolver(private val store: Store, private val policy: Policy) {
@@ -13,12 +13,12 @@ class IdentityResolver(private val store: Store, private val policy: Policy) {
     }
 
     fun resolve(signals: List<IdentitySignal>, now: LocalDateTime): Occupancy {
-        val (driver0, used0) = resolveOne(signals.filter { it.role == "driver" })
+        val (driver0, used0) = if (policy.guest_only) null to emptyList() else resolveOne(signals.filter { it.role == "driver" })
         val used = used0.toMutableList()
         val isGuest = driver0 == null
         val driver = driver0 ?: (GUEST_PREFIX + newId("g").substring(2)).also { used += "guest_default" }
         val passengers = mutableListOf<String>()
-        for (s in signals.filter { it.role == "passenger" }) {
+        for (s in signals.filter { it.role == "passenger" && !policy.guest_only }) {
             val (pid, _) = resolveOne(listOf(s))
             if (pid != null && pid != driver && pid !in passengers) passengers += pid
         }

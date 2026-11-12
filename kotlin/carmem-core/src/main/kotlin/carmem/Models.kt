@@ -76,9 +76,11 @@ data class Trip(
     val settings: Map<String, JsonElement> = emptyMap(),
     val route: Map<String, JsonElement> = emptyMap(),
     val distanceKm: Double = 0.0,
+    /** What kind of place the trip ended at ("restaurant", "gym"), when navigation or the driver said. */
+    val destinationKind: String? = null,
 ) {
     fun summary(): String {
-        val parts = mutableListOf("trip $origin -> $destination")
+        val parts = mutableListOf("trip $origin -> $destination" + (destinationKind?.takeIf { it.isNotBlank() }?.let { " ($it)" } ?: ""))
         if (route["tolls"]?.let { (it as? JsonPrimitive)?.booleanOrNull } == true) parts += "via toll road"
         settings.toSortedMap().forEach { (k, v) -> parts += "$k=${v.render()}" }
         return parts.joinToString(" ")

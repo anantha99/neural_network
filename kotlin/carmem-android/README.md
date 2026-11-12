@@ -21,7 +21,7 @@ Needs an Android SDK with platform 35 (the `optional/android.car.jar` is used vi
 `sdk.dir=...`; `settings.gradle.kts` includes this module only when one is found.
 
 ```
-cd kotlin && gradle :carmem-android:assembleDebug
+cd kotlin && ./gradlew :carmem-android:assembleDebug
 ```
 
 ## Deployment notes

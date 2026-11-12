@@ -40,19 +40,19 @@ LangMem are in `docs/DESIGN.md`; read it first.
 ```
 pip install -e .[dev] && python -m pytest -q          # Python reference, 24 tests
 python -m bench.run_bench                              # benchmark table
-cd kotlin && gradle test                               # core + car on the JVM, 10 tests (+2 live, skipped without GEMINI_API_KEY)
-cd kotlin && gradle :carmem-android:assembleDebug      # needs an Android SDK with platform 35
+cd kotlin && ./gradlew test                               # core + car on the JVM, 10 tests (+2 live, skipped without GEMINI_API_KEY)
+cd kotlin && ./gradlew :carmem-android:assembleDebug      # needs an Android SDK with platform 35
 ```
 
 Gradle 8.13/8.14 and JDK 21. Kotlin 2.4.20 (raised from 2.1.20 because litertlm-android 0.19.0 is built
-with Kotlin 2.4), AGP 8.9.1, kotlinx-serialization 1.8.0. There is no Gradle wrapper yet.
+with Kotlin 2.4), AGP 8.9.1, kotlinx-serialization 1.8.0. The Gradle wrapper pins 8.14.3.
 Maven Central rate-limited the cloud proxy; `--max-workers=1` and a retry fixed it.
 
 ## First things to do on a machine with Android Studio
 
 Done on 2026-11-01 except where noted above; kept for reference.
 
-1. Set `sdk.dir` in `kotlin/local.properties` and run `gradle :carmem-android:assembleDebug`.
+1. Set `sdk.dir` in `kotlin/local.properties` and run `./gradlew :carmem-android:assembleDebug`.
    Expect compile errors; the module was written against API memory, not a compiler.
    Things most likely wrong, in order:
    - `androidx.sqlite:sqlite-bundled` version (`2.5.2` assumed) and the exact names of the

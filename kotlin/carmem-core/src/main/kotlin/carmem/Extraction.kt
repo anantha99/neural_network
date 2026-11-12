@@ -29,6 +29,10 @@ fun slug(text: String): String = text.lowercase().replace(Regex("[^a-z0-9]+"), "
 
 interface Extractor { fun extract(text: String): List<Candidate> }
 
+private val CHILD = Regex("""\b(?:child(?:ren)?|kids?|son|daughter|baby|toddler|infant|booster)\b|\bchild ?seat\b|\bcar ?seat\b""", RegexOption.IGNORE_CASE)
+/** Free text about the speaker's children is sensitive and stays off the cloud; everything else is a plain note. */
+fun noteCategory(text: String): String = if (CHILD.containsMatchIn(text)) "children" else "note"
+
 /** Same patterns as carmem/extraction.py. */
 class RuleExtractor : Extractor {
     private val I = RegexOption.IGNORE_CASE
@@ -43,7 +47,6 @@ class RuleExtractor : Extractor {
     private val sensor = Regex("""\b(?:the |my )?(left|right) (front|rear) (?:parking )?sensor (?:is|seems|keeps|has been) ([\w ]+)""", I)
     private val tyre = Regex("""\b(?:tyre|tire) pressure (?:warning|light|alert)\b""", I)
     private val remember = Regex("""\bremember (?:that )?(.+)""", I)
-    private val child = Regex("""\b(?:child(?:ren)?|kids?|son|daughter|baby|toddler|infant|booster)\b|\bchild ?seat\b|\bcar ?seat\b""", I)
 
     private fun String.clean() = trim(' ', '.')
 
@@ -59,7 +62,7 @@ class RuleExtractor : Extractor {
         allergy.find(t)?.let { out += Candidate("health", "allergy", JsonPrimitive(it.groupValues[1].clean())) }
         sensor.find(t)?.let { out += Candidate("vehicle_fault", "${it.groupValues[1].lowercase()}_${it.groupValues[2].lowercase()}_sensor", JsonPrimitive(it.groupValues[3].clean()), about = "vehicle") }
         if (tyre.containsMatchIn(t)) out += Candidate("vehicle_fault", "tyre_pressure", JsonPrimitive("warning reported"), about = "vehicle")
-        if (out.isEmpty()) remember.find(t)?.let { val n = it.groupValues[1].clean(); out += Candidate(if (child.containsMatchIn(n)) "children" else "note", slug(n), JsonPrimitive(n)) }
+        if (out.isEmpty()) remember.find(t)?.let { val n = it.groupValues[1].clean(); out += Candidate(noteCategory(n), slug(n), JsonPrimitive(n)) }
         return out
     }
 }

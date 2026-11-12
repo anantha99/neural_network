@@ -93,4 +93,79 @@ class CarTest {
         session.onEvent(IgnitionChanged(g.plusMinutes(30), false))
         assertTrue(mem.store.scopesPresent().none { it.startsWith("guest:") })
     }
+
+    /** One weekday on a head unit: parked at home overnight, out in the morning, parked there all day, home for the night. */
+    private fun schoolDay(session: CarSession, day: LocalDateTime, signal: IdentitySignal?) {
+        if (signal != null) session.onEvent(OccupantObserved(day.minusSeconds(10), signal))
+        session.onEvent(LocationFix(day.minusSeconds(5), home.first, home.second, 0.0))
+        session.onEvent(IgnitionChanged(day, true))
+        session.onEvent(SettingChanged(day.plusSeconds(20), "cabin_temp", JsonPrimitive(21.0)))
+        val arrived = drive(session::onEvent, home, school, day, 12)
+        session.onEvent(IgnitionChanged(arrived.plusSeconds(30), false))
+        val back = arrived.plusHours(9)
+        session.onEvent(IgnitionChanged(back, true))
+        val homeAt = drive(session::onEvent, school, home, back, 12)
+        session.onEvent(IgnitionChanged(homeAt.plusSeconds(30), false))
+    }
+
+    @Test fun `a new head unit learns the commute in three weeks with nobody enrolled by hand`() {
+        val mem = CarMemory(JdbcSqlDriver())
+        val proposals = mutableListOf<Proposal>()
+        val session = CarSession(mem, PlaceResolver()) { proposals += it }       // default thresholds: home needs three nights, work three workdays
+        val profile = IdentitySignal("seat_profile", "user:10")
+        val monday = LocalDateTime.of(2026, 9, 7, 7, 40)
+        for (w in 0 until 3) for (d in 0 until 5) schoolDay(session, monday.plusWeeks(w.toLong()).plusDays(d.toLong()), profile)
+
+        // the Android user profile was enrolled on first sight, so memory formed from day one
+        assertEquals("user:10", mem.store.lookupIdentity("seat_profile", "user:10"))
+        // only the two ends of the trip are places; the 22 fixes on the road each way are not
+        assertEquals(listOf("home", "work"), session.places.all().map { it.name })
+        // the first days happened before the car knew which place was home and which was work, and still count
+        val run = mem.store.routines(listOf("user:10"), listOf(State.CONFIRMED)).filter { it.destination == "work" }
+        assertEquals(5, run.size, mem.store.routines(listOf("user:10")).toString())
+        assertTrue(run.all { it.origin == "home" && it.support.size == 3 }, run.toString())
+        assertTrue(mem.store.routines(listOf("user:10")).none { "place-" in it.destination || "place-" in it.origin })
+
+        // fourth Monday: proposal from home, and nothing in the assistant's context still uses a placeholder name
+        proposals.clear()
+        val fourth = monday.plusWeeks(3)
+        session.onEvent(OccupantObserved(fourth.minusSeconds(10), profile))
+        session.onEvent(LocationFix(fourth.minusSeconds(5), home.first, home.second, 0.0))
+        session.onEvent(IgnitionChanged(fourth, true))
+        assertTrue(proposals.any { it.kind == "routine" && it.tier == Tier.SUGGEST && it.action["destination"].toString().contains("work") }, proposals.toString())
+        assertTrue("place-" !in mem.context("where do I go on Mondays", "local", fourth).render())
+
+        // the driver names the place while parked there: the routine follows the name
+        val arrived = drive(session::onEvent, home, school, fourth, 12)
+        session.onEvent(PlaceNamed(arrived, "Oakwood Primary"))
+        assertTrue(mem.store.routines(listOf("user:10"), listOf(State.CONFIRMED)).any { it.destination == "Oakwood Primary" })
+        assertTrue(mem.store.routines(listOf("user:10")).none { it.destination == "work" })
+    }
+
+    @Test fun `places survive a crash and unknown drivers stay guests when auto enrol is off`() {
+        val mem = CarMemory(JdbcSqlDriver())
+        val first = CarSession(mem, PlaceResolver(homeMinNightMinutes = 60), autoEnrollProfiles = false)
+        val t0 = LocalDateTime.of(2026, 9, 7, 7, 40)
+        schoolDay(first, t0, IdentitySignal("seat_profile", "user:10")); schoolDay(first, t0.plusDays(1), IdentitySignal("seat_profile", "user:10"))
+        assertEquals(null, mem.store.lookupIdentity("seat_profile", "user:10"))
+        assertTrue(mem.store.routines().isEmpty())                               // a guest forms no routines
+        // no shutdown hook ran: a second session over the same database still knows the places and their names
+        val second = CarSession(mem, PlaceResolver(homeMinNightMinutes = 60))
+        assertEquals(listOf("home", "place-2"), second.places.all().map { it.name })
+        assertEquals("home", second.places.find(home.first, home.second)?.name)
+    }
+
+    @Test fun `on the road the car is moving and at no known place`() {
+        val mem = CarMemory(JdbcSqlDriver())
+        val session = CarSession(mem, PlaceResolver())
+        val t0 = LocalDateTime.of(2026, 9, 7, 7, 40)
+        assertEquals(null, session.location)
+        session.onEvent(LocationFix(t0.minusSeconds(5), home.first, home.second, 0.0))
+        session.onEvent(IgnitionChanged(t0, true))
+        assertEquals(false, session.moving); assertEquals("place-1", session.location)
+        session.onEvent(LocationFix(t0.plusMinutes(5), (home.first + school.first) / 2, (home.second + school.second) / 2, 9.0))
+        assertEquals(true, session.moving); assertEquals(CarSession.UNKNOWN_PLACE, session.location)
+        session.onEvent(IgnitionChanged(t0.plusMinutes(6), false))
+        assertEquals(false, session.moving)
+    }
 }

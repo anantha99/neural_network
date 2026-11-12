@@ -102,4 +102,120 @@ class CoreTest {
         val notes = mem.store.facts(listOf("asha"), "note").filter { it.isCurrent }
         assertEquals(listOf("Wednesdays at 5"), notes.map { it.value.render() })
     }
+
+    @Test fun `evidence stays bounded however long the car is driven`() {
+        val mem = make(); schoolRun(mem, 40)
+        val temp = mem.store.facts(listOf("asha"), "climate", "cabin_temp").first { it.source == "implicit" && it.condition == null }
+        // one observation per trip for 200 trips; only the 56-day window (plus a day of slack) is kept
+        assertTrue(temp.support.size <= 5 * 9 + 1, "implicit fact kept ${temp.support.size} observations")
+        assertTrue(mem.store.routines(listOf("asha")).all { it.support.size <= 10 }, mem.store.routines(listOf("asha")).map { it.support.size }.toString())
+        // and the state machine still sees what it needs: confirmed, and explain() has its trail
+        assertEquals(State.CONFIRMED, temp.state)
+        val rt = mem.store.routines(listOf("asha"), listOf(State.CONFIRMED)).first()
+        assertTrue(mem.explain(rt.id)["because"].toString().contains("Oakwood Primary"))
+    }
+
+    @Test fun `a write that fails half way leaves nothing behind`() {
+        val mem = make(); val t = LocalDateTime.of(2026, 9, 7, 8, 0)
+        mem.ignitionOn(listOf(IdentitySignal("key_fob", "fob-a")), t)
+        val before = listOf("episodes", "facts", "routines", "audit").associateWith { mem.store.count(it) }
+        val failed = runCatching { mem.store.tx { mem.recordTrip(Trip(t, t.plusMinutes(15), "home", "Oakwood Primary", listOf("asha"), mapOf("cabin_temp" to JsonPrimitive(21.0)))); error("power cut") } }
+        assertTrue(failed.isFailure)
+        assertEquals(before, listOf("episodes", "facts", "routines", "audit").associateWith { mem.store.count(it) })
+        mem.recordTrip(Trip(t, t.plusMinutes(15), "home", "Oakwood Primary", listOf("asha")))   // and the store still works
+        assertEquals(before["episodes"]!! + 1, mem.store.count("episodes"))
+    }
+
+    @Test fun `context reflects a change made since the last call`() {
+        val mem = make(); val t = LocalDateTime.of(2026, 9, 7, 8, 0)
+        mem.ignitionOn(listOf(IdentitySignal("key_fob", "fob-a")), t)
+        mem.hear("my kid's school is Oakwood Primary", now = t)
+        assertTrue("Oakwood Primary" in mem.context("school", "local", t).render())
+        mem.hear("my kid's school is Hillcrest Academy", now = t.plusMinutes(1))
+        val after = mem.context("school", "local", t.plusMinutes(2)).render()
+        assertTrue("school/school_location = Hillcrest Academy" in after && "school/school_location = Oakwood Primary" !in after, after)
+        mem.hear("forget that", now = t.plusMinutes(3))
+        assertTrue("school/school_location" !in mem.context("", "local", t.plusMinutes(4)).render())
+        // another driver never sees the first driver's cached context
+        mem.enroll("ben", "Ben", listOf("key_fob" to "fob-b")); mem.hear("I'm allergic to peanuts", now = t.plusMinutes(5))
+        mem.ignitionOn(listOf(IdentitySignal("key_fob", "fob-b")), t.plusHours(1))
+        assertTrue("peanuts" !in mem.context("allergy", "local", t.plusHours(1)).render())
+    }
+
+    @Test fun `episodes written before vectors became blobs still rank`() {
+        val db = JdbcSqlDriver(); val mem = CarMemory(db); mem.enroll("asha", "Asha", listOf("key_fob" to "fob-a"))
+        val t = LocalDateTime.of(2026, 9, 7, 8, 0)
+        mem.ignitionOn(listOf(IdentitySignal("key_fob", "fob-a")), t)
+        val text = "the dentist moved my appointment to Thursday"
+        db.execute("INSERT INTO episodes(scope,kind,ts,text,payload,embedding) VALUES (?,?,?,?,?,?)",
+            listOf("asha", "utterance", iso(t), text, "{}", mem.embedder.embed(text).joinToString(",", "[", "]")))
+        mem.hear("play some jazz", now = t.plusMinutes(1))
+        assertEquals(text, mem.context("dentist appointment", "local", t.plusMinutes(2)).episodes.first().text)
+    }
+
+    @Test fun `a database from a newer build is refused`() {
+        val db = JdbcSqlDriver(); CarMemory(db)
+        db.execute("UPDATE meta SET value=? WHERE key='schema_version'", listOf((SCHEMA_VERSION + 1).toString()))
+        assertTrue(runCatching { Store(db) }.exceptionOrNull() is IllegalStateException)
+    }
+
+    @Test fun `seat is not moved while the car is moving, climate still is`() {
+        val mem = make(); var t = LocalDateTime.of(2026, 9, 7, 7, 40)
+        repeat(4) {
+            mem.ignitionOn(listOf(IdentitySignal("key_fob", "fob-a")), t)
+            mem.recordTrip(Trip(t, t.plusMinutes(15), "home", "work", listOf("asha"), mapOf("cabin_temp" to JsonPrimitive(21.0), "seat_position" to JsonPrimitive("profile-2"))))
+            mem.ignitionOff(t.plusHours(1)); t = t.plusDays(1)
+        }
+        mem.ignitionOn(listOf(IdentitySignal("key_fob", "fob-a")), t)
+        fun keys(moving: Boolean) = mem.proactive(t, "home", moving).filter { it.kind == "fact" }.map { it.action["key"]!!.render() }.toSet()
+        assertEquals(setOf("cabin_temp", "seat_position"), keys(moving = false))
+        assertEquals(setOf("cabin_temp"), keys(moving = true))
+    }
+
+    @Test fun `the remember tool keeps what the assistant sends even when no pattern matches`() {
+        val mem = make(); val t = LocalDateTime.of(2026, 9, 7, 8, 0)
+        mem.ignitionOn(listOf(IdentitySignal("key_fob", "fob-a")), t)
+        fun remember(text: String) = mem.handleTool("memory_remember", kotlinx.serialization.json.buildJsonObject { put("text", JsonPrimitive(text)) })
+        assertTrue(remember("I like jazz on the way to work")["stored"].toString().contains("note/"))
+        assertTrue(remember("my daughter Mia needs her booster seat")["stored"].toString().contains("children/"))
+        assertTrue(remember("I prefer 22 degrees")["stored"].toString().contains("climate/cabin_temp"))   // known patterns stay typed
+        assertEquals("[]", remember("no")["stored"].toString())                                              // a correction is not a note
+        val local = mem.context("jazz", "local", t).render(); val cloud = mem.context("booster seat", "cloud", t).render()
+        assertTrue("I like jazz on the way to work" in local, local)
+        assertTrue("Mia" !in cloud, cloud)
+    }
+
+    @Test fun `renaming a place carries its routine, evidence and tombstone to the new name`() {
+        val mem = make(); val start = LocalDateTime.of(2026, 9, 7, 7, 40)
+        fun trip(t: LocalDateTime, to: String) { mem.ignitionOn(listOf(IdentitySignal("key_fob", "fob-a")), t); mem.recordTrip(Trip(t, t.plusMinutes(15), "home", to, listOf("asha"))); mem.ignitionOff(t.plusHours(1)) }
+        trip(start, "place-4"); trip(start.plusWeeks(1), "place-4")          // before the place had a name
+        trip(start.plusWeeks(2), "Oakwood Primary")                           // after: same habit, new name
+        val at = start.plusWeeks(2).plusHours(2)
+        assertEquals(2, mem.store.routines(listOf("asha")).size)
+        val res = mem.renamePlace("place-4", "Oakwood Primary", at)
+        assertEquals("1", res["routines"].toString())
+        val rt = mem.store.routines(listOf("asha")).single()
+        assertEquals("Oakwood Primary", rt.destination); assertEquals(State.CONFIRMED, rt.state)   // three weeks, counted together
+        assertEquals(3, rt.support.size)
+        mem.ignitionOn(listOf(IdentitySignal("key_fob", "fob-a")), at)
+        val ctx = mem.context("trip home to Oakwood Primary", "local", at).render()
+        assertTrue("place-4" !in ctx && "trip home -> Oakwood Primary" in ctx, ctx)
+        // a forgotten place stays forgotten under its new name
+        trip(start.plusDays(1), "place-9"); mem.ignitionOn(listOf(IdentitySignal("key_fob", "fob-a")), at)
+        mem.forget(mem.store.routines(listOf("asha")).first { it.destination == "place-9" }.id, at)
+        mem.renamePlace("place-9", "the gym", at)
+        mem.recordTrip(Trip(at.plusDays(1), at.plusDays(1).plusMinutes(15), "home", "the gym", listOf("asha")))
+        assertTrue(mem.store.routines(listOf("asha")).none { it.destination == "the gym" })
+    }
+
+    @Test fun `latency recorder reports percentiles, queue time and calls over budget`() {
+        var clock = 0L
+        val rec = LatencyRecorder(window = 100, nanoTime = { clock })
+        rec.budgetMs = 50.0
+        for (i in 1..100) { val asked = clock; clock += 1_000_000; val started = clock; clock += i * 1_000_000L; rec.record("context", asked, started) }
+        val c = rec.toJson()["calls"].toString()
+        assertTrue("\"count\":100" in c && "\"over_budget\":51" in c && "\"max_ms\":101.0" in c && "\"queued_p99_ms\":1.0" in c, c)
+        assertTrue("\"p50_ms\":52.0" in c, c)
+        assertEquals(7, rec.time("x") { 7 })
+    }
 }

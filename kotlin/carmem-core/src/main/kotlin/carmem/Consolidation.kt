@@ -34,6 +34,14 @@ fun countWeekday(start: LocalDateTime, end: LocalDateTime, dow: Int): Int {
 }
 
 private fun days(n: Int): Long = n.toLong()
+
+/** Evidence the state machine can no longer use: older than `cutoff` and not among the last [KEEP_EVIDENCE] kept for explain(). */
+private const val KEEP_EVIDENCE = 10
+internal fun trimEvidence(list: MutableList<Evidence>, cutoff: LocalDateTime): MutableList<Evidence> {
+    if (list.size <= KEEP_EVIDENCE) return list
+    val c = iso(cutoff); val keepFrom = list.size - KEEP_EVIDENCE
+    return list.filterIndexedTo(mutableListOf()) { i, e -> i >= keepFrom || e.ts.take(19) >= c }
+}
 private fun jnum(n: Number): JsonElement = JsonPrimitive(n)
 private fun jstr(s: String?): JsonElement = s?.let { JsonPrimitive(it) } ?: JsonNull
 
@@ -99,6 +107,8 @@ class Consolidator(val store: Store, val policy: Policy, val embedder: Embedder 
 
     private fun evaluateImplicit(base: Fact, now: LocalDateTime) {
         val window = now.minusDays(days(policy.fact_window_days))
+        // One observation per trip, forever, would make every read of this fact slower each week. A day of slack for clock changes.
+        base.support = trimEvidence(base.support, window.minusDays(1))
         val recent = base.support.filter { !parseIso(it.ts).isBefore(window) }
         val counts = recent.groupingBy { it.value.normalized() }.eachCount()
         val n = recent.size
@@ -148,7 +158,8 @@ class Consolidator(val store: Store, val policy: Policy, val embedder: Embedder 
     fun sensorFact(category: String, key: String, value: JsonElement, ep: Episode, now: LocalDateTime): Fact {
         val ev = Evidence(ep.id, iso(ep.ts), value, note = "sensor")
         store.facts(listOf(VEHICLE_SCOPE), category, key).firstOrNull { it.state != State.RETIRED }?.let {
-            it.value = value; it.state = State.CONFIRMED; it.updated = iso(now); it.support += ev; store.upsertFact(it); return it
+            it.value = value; it.state = State.CONFIRMED; it.updated = iso(now); it.support += ev
+            it.support = trimEvidence(it.support, now.minusDays(days(policy.fact_window_days) + 1)); store.upsertFact(it); return it
         }
         val f = Fact(newId("fact"), VEHICLE_SCOPE, category, key, value, null, State.CONFIRMED, "sensor", "public", mutableListOf(ev), created = iso(now), updated = iso(now), validFrom = iso(ep.ts))
         store.upsertFact(f)
@@ -182,7 +193,7 @@ class Consolidator(val store: Store, val policy: Policy, val embedder: Embedder 
             return null
         }
         val tol = policy.routine_slot_tolerance_min
-        val rt = store.routines(listOf(scope)).firstOrNull { it.signature == sig && it.state != State.RETIRED && abs(it.minuteOfDay - mod) <= tol }
+        val rt = store.routines(listOf(scope), signature = sig).firstOrNull { it.state != State.RETIRED && abs(it.minuteOfDay - mod) <= tol }
             ?: Routine(newId("rt"), scope, sig, dow, mod, trip.destination, trip.origin,
                 mapOf("type" to JsonPrimitive("navigate"), "destination" to JsonPrimitive(trip.destination)), firstSeen = iso(trip.start), lastSeen = iso(trip.start))
         rt.support += Evidence(ep.id, iso(trip.start), JsonPrimitive(trip.destination), trip.origin, note = "trip")
@@ -201,8 +212,8 @@ class Consolidator(val store: Store, val policy: Policy, val embedder: Embedder 
 
     private fun contradictSlot(scope: String, trip: Trip, ep: Episode, now: LocalDateTime, exclude: String?) {
         val mod = minuteOf(trip.start); val tol = policy.routine_slot_tolerance_min; val today = trip.start.toLocalDate()
-        for (r in store.routines(listOf(scope), listOf(State.CANDIDATE, State.CONFIRMED))) {
-            if (r.id == exclude || r.dow != trip.start.dayOfWeek.value - 1 || abs(r.minuteOfDay - mod) > tol) continue
+        for (r in store.routines(listOf(scope), listOf(State.CANDIDATE, State.CONFIRMED), dow = trip.start.dayOfWeek.value - 1)) {
+            if (r.id == exclude || abs(r.minuteOfDay - mod) > tol) continue
             if (normPlace(r.destination) == normPlace(trip.destination)) continue
             if (r.origin.isNotEmpty() && trip.origin.isNotEmpty() && normPlace(r.origin) != normPlace(trip.origin)) continue
             if (r.support.any { it.note == "trip" && parseIso(it.ts).toLocalDate() == today }) continue
@@ -214,6 +225,7 @@ class Consolidator(val store: Store, val policy: Policy, val embedder: Embedder 
     fun evaluateRoutine(rt: Routine, now: LocalDateTime): Routine {
         val p = policy
         val window = now.minusDays(days(p.routine_window_days))
+        rt.support = trimEvidence(rt.support, window.minusDays(1)); rt.contradictions = trimEvidence(rt.contradictions, window.minusDays(1))
         val sup = rt.support.map { parseIso(it.ts) }.filter { !it.isBefore(window) }
         val occ = sup.size
         val weeks = sup.map { it.get(IsoFields.WEEK_BASED_YEAR) to it.get(IsoFields.WEEK_OF_WEEK_BASED_YEAR) }.toSet().size
@@ -236,12 +248,12 @@ class Consolidator(val store: Store, val policy: Policy, val embedder: Embedder 
     }
 
     // ------------------------------------------------------------ proposals
-    fun proposals(scope: String, now: LocalDateTime, suppressed: Set<String>, location: String? = null): List<Proposal> {
+    fun proposals(scope: String, now: LocalDateTime, suppressed: Set<String>, location: String? = null, moving: Boolean = false): List<Proposal> {
         val out = mutableListOf<Proposal>()
         if (isGuest(scope)) return out
         val tol = policy.routine_slot_tolerance_min; val mod = minuteOf(now)
-        for (r in store.routines(listOf(scope), listOf(State.CONFIRMED))) {
-            if (r.id in suppressed || r.dow != now.dayOfWeek.value - 1 || abs(r.minuteOfDay - mod) > tol) continue
+        for (r in store.routines(listOf(scope), listOf(State.CONFIRMED), dow = now.dayOfWeek.value - 1)) {
+            if (r.id in suppressed || abs(r.minuteOfDay - mod) > tol) continue
             if (location != null && r.origin.isNotEmpty() && normPlace(location) != normPlace(r.origin)) continue
             if (location != null && normPlace(location) == normPlace(r.destination)) continue
             val tier = policy.effectiveTier(r.category, r.demotion)
@@ -257,6 +269,7 @@ class Consolidator(val store: Store, val policy: Policy, val embedder: Embedder 
             if (f.condition != null && !condMatches(f.condition, conds)) continue
             val tier = policy.effectiveTier(f.category, f.demotion)
             if (tier == Tier.NEVER || tier == Tier.SILENT) continue
+            if (moving && f.category in policy.act_blocked_while_moving) continue
             if (f.condition == null && confirmed.any { g -> g.category == f.category && g.key == f.key && g.condition != null && condMatches(g.condition, conds) }) continue
             out += Proposal("fact", f.id, scope, tier, "Setting ${f.key.replace('_', ' ')} to ${f.value.render()}.",
                 mapOf("type" to JsonPrimitive("set"), "key" to JsonPrimitive(f.key), "value" to f.value))

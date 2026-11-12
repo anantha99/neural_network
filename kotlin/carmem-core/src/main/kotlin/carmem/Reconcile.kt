@@ -10,7 +10,8 @@ class Reconciler(private val policy: Policy, private val embedder: Embedder, pri
     /** newKey is the subject the extractor gave the new statement; the model sees key and value, the rules values only. */
     fun decide(newText: String, existing: List<Fact>, newKey: String? = null): Decision {
         if (existing.isEmpty()) return Decision("add", null, 0.0, "rules")
-        val scored = existing.map { similarity(newText, it.value.render(), embedder) to it }.sortedByDescending { it.first }.take(policy.reconcile_top_k)
+        val newTokens = tokenize(newText).toSet(); val newVec = embedder.embed(newText) // once, not once per existing note
+        val scored = existing.map { similarity(newTokens, newVec, it.value.render(), embedder) to it }.sortedByDescending { it.first }.take(policy.reconcile_top_k)
         if (llm != null) try {
             val listing = scored.mapIndexed { i, (_, f) -> "$i. ${f.key.replace('_', ' ')}: ${f.value.render()}" }.joinToString("\n")
             val new = if (newKey != null) "${newKey.replace('_', ' ')}: $newText" else newText

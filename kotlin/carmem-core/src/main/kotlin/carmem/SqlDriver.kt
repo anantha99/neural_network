@@ -14,7 +14,10 @@ interface SqlDriver {
 
 /** JDBC implementation (org.xerial sqlite-jdbc on the classpath). */
 class JdbcSqlDriver(url: String = "jdbc:sqlite::memory:") : SqlDriver {
-    private val conn: java.sql.Connection = java.sql.DriverManager.getConnection(url)
+    private val conn: java.sql.Connection = java.sql.DriverManager.getConnection(url).also { c ->
+        // Same settings as the head unit's driver: a write-ahead log, and no fsync on every commit.
+        c.createStatement().use { st -> st.execute("PRAGMA journal_mode=WAL"); st.execute("PRAGMA synchronous=NORMAL") }
+    }
 
     override fun execute(sql: String, args: List<Any?>): Int = conn.prepareStatement(sql).use { ps ->
         args.forEachIndexed { i, a -> ps.setObject(i + 1, a) }

@@ -20,7 +20,19 @@ dependencies {
 }
 
 tasks.test {
-    useJUnitPlatform()
+    useJUnitPlatform { excludeTags("latency") }
     testLogging { events("passed", "skipped", "failed"); showStandardStreams = true }
     systemProperty("carmem.fixtures", rootProject.projectDir.resolve("../fixtures").absolutePath)
+}
+
+// Timing depends on the machine, so it is not part of `test`: run `gradle :carmem-core:latency` and read the table.
+tasks.register<Test>("latency") {
+    description = "Per-call latency against a six-month database (LatencyTest)."
+    group = "verification"
+    testClassesDirs = sourceSets.test.get().output.classesDirs
+    classpath = sourceSets.test.get().runtimeClasspath
+    useJUnitPlatform { includeTags("latency") }
+    testLogging { events("passed", "failed"); showStandardStreams = true }
+    listOf("carmem.latency.budgetMs", "carmem.latency.weeks").forEach { k -> System.getProperty(k)?.let { systemProperty(k, it) } }
+    outputs.upToDateWhen { false }
 }

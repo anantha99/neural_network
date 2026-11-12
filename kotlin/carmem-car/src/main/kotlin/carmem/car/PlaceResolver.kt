@@ -32,7 +32,7 @@ fun haversineMeters(lat1: Double, lon1: Double, lat2: Double, lon2: Double): Dou
  * labels from dwell time, the way every trip-mining paper does it. Reverse
  * geocoding for display names is the Android module's job and optional.
  *
- * Persist with [snapshot] / [restore]; the Android service keeps it in the memory db.
+ * Persist with [snapshot] / [restore]; [CarSession] keeps it in the memory database.
  */
 class PlaceResolver(
     private val radiusMeters: Double = 150.0,
@@ -42,7 +42,13 @@ class PlaceResolver(
     private val places = mutableListOf<Place>()
     private var nextId = 1
 
+    /** A place's [Place.name] changed at `at`; whoever keeps memories under the old name must move them. */
+    var onRenamed: (old: String, new: String, at: LocalDateTime) -> Unit = { _, _, _ -> }
+
     fun all(): List<Place> = places.toList()
+
+    /** The known place at these coordinates, if any. Unlike [resolve] it never creates one: use it for fixes on the road. */
+    fun find(lat: Double, lon: Double): Place? = places.firstOrNull { haversineMeters(it.lat, it.lon, lat, lon) <= radiusMeters }
 
     fun resolve(lat: Double, lon: Double): Place {
         places.firstOrNull { haversineMeters(it.lat, it.lon, lat, lon) <= radiusMeters }?.let { p ->
@@ -54,7 +60,14 @@ class PlaceResolver(
         return Place(nextId++, lat, lon, visits = 1).also { places += it }
     }
 
-    fun label(place: Place, name: String) { place.label = name }
+    /** Name a place. A name belongs to one place: if another place had it (the driver moved house), that one gives it up. */
+    fun label(place: Place, name: String, at: LocalDateTime) {
+        if (name.isBlank() || place.label == name) return
+        places.firstOrNull { it !== place && it.label == name }?.let { other -> other.label = null; onRenamed(name, other.name, at) }
+        val old = place.name
+        place.label = name
+        onRenamed(old, name, at)
+    }
 
     /** Record a dwell at `place` from `from` to `to` and re-derive home/work labels. */
     fun dwell(place: Place, from: LocalDateTime, to: LocalDateTime) {
@@ -67,12 +80,12 @@ class PlaceResolver(
             if (t.dayOfWeek !in setOf(DayOfWeek.SATURDAY, DayOfWeek.SUNDAY) && h in 9..15) place.workdayMinutes += mins
             t = next
         }
-        inferLabels()
+        inferLabels(to)
     }
 
-    private fun inferLabels() {
-        if (places.none { it.label == "home" }) places.filter { it.nightMinutes >= homeMinNightMinutes }.maxByOrNull { it.nightMinutes }?.let { it.label = "home" }
-        if (places.none { it.label == "work" }) places.filter { it.label == null && it.workdayMinutes >= workMinWorkdayMinutes }.maxByOrNull { it.workdayMinutes }?.let { it.label = "work" }
+    private fun inferLabels(at: LocalDateTime) {
+        if (places.none { it.label == "home" }) places.filter { it.label == null && it.nightMinutes >= homeMinNightMinutes }.maxByOrNull { it.nightMinutes }?.let { label(it, "home", at) }
+        if (places.none { it.label == "work" }) places.filter { it.label == null && it.workdayMinutes >= workMinWorkdayMinutes }.maxByOrNull { it.workdayMinutes }?.let { label(it, "work", at) }
     }
 
     fun snapshot(): String = places.joinToString("\n") { "${it.id}\t${it.lat}\t${it.lon}\t${it.visits}\t${it.label ?: ""}\t${it.nightMinutes}\t${it.workdayMinutes}" }

@@ -47,9 +47,10 @@ Kotlin only; the Python reference was left as it is, and the conformance test st
 - New findings, fixed: every location fix on the road created a place, so the place list grew with every
   kilometre; places were saved only in `onDestroy`; proposals were broadcast to the host's own package only;
   `memory_remember` dropped text no rule matched.
-- **Not compiled:** this session had no Android SDK. `carmem-core` and `carmem-car` are built and tested (22 tests).
-  The edits in `carmem-android` and `carmem-devhost` (`CarMemoryService`, `AndroidSqlDriver`, `ICarMemory.aidl`,
-  `ProbeReceiver`) were reviewed by hand only. Build them before anything else.
+- **Compiled, not run:** `carmem-core` and `carmem-car` are built and tested (22 tests). The edits in
+  `carmem-android` and `carmem-devhost` (`CarMemoryService`, `AndroidSqlDriver`, `ICarMemory.aidl`, `ProbeReceiver`)
+  compile in CI, whose runners have an Android SDK (debug and release, PR #4), but have not been run on an
+  emulator or a head unit since. Run them there before anything else.
 - Still open: `hear` blocks the worker when an `LlmClient` is set; a failed platform guest check treats the user
   as a known profile, which now also enrols them.
 

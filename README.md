@@ -139,8 +139,8 @@ commute routines found and costs ten points of proposal precision; the policy is
 
 Known limitations the real benchmark surfaced, none of them hidden by the numbers above:
 
-* No motion input yet, so an act-tier setting could change mid-trip (U24). The head unit has
-  the signal; the gate is not wired.
+* The Python reference has no motion input, so an act-tier setting could change mid-trip (U24).
+  The Kotlin core takes the car's motion and withholds seat changes while moving.
 * No passenger-scoped writes: a passenger's utterance is attributed, but seat occupancy
   does not open a scope (U21).
 * No keys for charging, refuelling, maintenance, drive mode, volume or quiet hours, and no

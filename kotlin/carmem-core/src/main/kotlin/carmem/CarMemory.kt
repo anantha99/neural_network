@@ -33,28 +33,35 @@ class CarMemory(
     val store = Store(driver)
     val identity = IdentityResolver(store, policy)
     val consolidator = Consolidator(store, policy, embedder, llm)
-    private val contextBuilder = ContextBuilder(store, policy, embedder)
+    val contextBuilder = ContextBuilder(store, policy, embedder)
     private val extractor: Extractor = if (llm != null) LlmExtractor(llm) else RuleExtractor()
     private var session: Session? = null
 
+    /** The car's state as last reported by whatever feeds it (CarSession does): used when a caller does not say. */
+    var carMoving: Boolean = false
+    var carLocation: String? = null
+
     // ------------------------------------------------------------ identity / session
-    fun enroll(id: String, name: String, bindings: List<Pair<String, String>> = emptyList()): Person = Person(id, name).also { identity.enroll(it, bindings) }
+    // Every call that writes runs as one transaction: one commit per call, and nothing half applied if it fails.
+    fun enroll(id: String, name: String, bindings: List<Pair<String, String>> = emptyList()): Person = store.tx { Person(id, name).also { identity.enroll(it, bindings) } }
     fun bind(kind: String, value: String, personId: String) { requireNotNull(store.getPerson(personId)) { "unknown person $personId" }; store.bindIdentity(kind, value, personId) }
 
-    fun ignitionOn(signals: List<IdentitySignal>, now: LocalDateTime = clock()): Occupancy {
+    fun ignitionOn(signals: List<IdentitySignal>, now: LocalDateTime = clock()): Occupancy = store.tx {
         if (session != null) ignitionOff(now)
         val occ = identity.resolve(signals, now)
         session = Session(occ, now)
-        return occ
+        occ
     }
 
-    fun ignitionOff(now: LocalDateTime = clock()): JsonObject {
+    fun ignitionOff(now: LocalDateTime = clock()): JsonObject = ignitionOffTx(now).also { store.checkpoint() }
+
+    private fun ignitionOffTx(now: LocalDateTime): JsonObject = store.tx {
         val wiped = linkedMapOf<String, Map<String, Int>>()
         session?.occupancy?.scopes?.filter(::isGuest)?.forEach { wiped[it] = store.purgeScope(it); store.audit(now, it, "guest.wiped") }
         store.scopesPresent().filter { isGuest(it) && it !in wiped }.forEach { wiped[it] = store.purgeScope(it) }
         session = null
         val maint = consolidator.maintenance(now)
-        return buildJsonObject {
+        buildJsonObject {
             put("wiped", JsonObject(wiped.mapValues { (_, m) -> JsonObject(m.mapValues { JsonPrimitive(it.value) }) }))
             put("maintenance", JsonObject(maint.mapValues { JsonPrimitive(it.value) }))
         }
@@ -64,7 +71,7 @@ class CarMemory(
     private fun driver(): String = session?.occupancy?.driverId ?: error("no session: call ignitionOn() first")
 
     // ------------------------------------------------------------ write side
-    fun recordTrip(trip: Trip, now: LocalDateTime = trip.end): JsonObject {
+    fun recordTrip(trip: Trip, now: LocalDateTime = trip.end): JsonObject = store.tx {
         val scope = session?.occupancy?.driverId ?: trip.occupants.firstOrNull() ?: error("recordTrip needs a session or trip.occupants")
         val text = trip.summary()
         val ep = store.addEpisode(scope, "trip", trip.start, text, buildJsonObject {
@@ -86,26 +93,28 @@ class CarMemory(
                 consolidator.accept(p, ep, now); accepted += p.recordId; s.pending.remove(p)
             }
         }
-        return buildJsonObject {
+        buildJsonObject {
             put("episode", ep.id); put("facts", JsonArray(facts))
             put("routine", rt?.let { r -> buildJsonObject { put("id", r.id); put("state", r.state.wire); put("routine", r.describe()); r.stats.forEach { (k, v) -> put(k, v) } } } ?: JsonNull)
             put("accepted", JsonArray(accepted.map { JsonPrimitive(it) }))
         }
     }
 
-    fun recordVehicleEvent(key: String, value: JsonElement, category: String = "vehicle_fault", now: LocalDateTime = clock(), text: String? = null): Fact {
+    fun recordVehicleEvent(key: String, value: JsonElement, category: String = "vehicle_fault", now: LocalDateTime = clock(), text: String? = null): Fact = store.tx {
         val t = text ?: "vehicle $category $key: ${value.render()}"
         val ep = store.addEpisode(VEHICLE_SCOPE, "sensor", now, t, buildJsonObject { put("key", key); put("value", value) }, embedder.embed(t))
-        return consolidator.sensorFact(category, key, value, ep, now)
+        consolidator.sensorFact(category, key, value, ep, now)
     }
 
     /** Process one utterance: driving-time intents first, then extraction. */
     fun hear(text: String, speakerId: String? = null, now: LocalDateTime = clock()): JsonObject {
         val scope = speakerId ?: driver()
+        // The utterance is committed first, and a model-backed extractor runs outside any transaction: it can take seconds.
         val ep = store.addEpisode(scope, "utterance", now, text, buildJsonObject { put("speaker", scope) }, embedder.embed(text))
         val intent = detectIntent(text)
+        val candidates = if (intent.name == "none") extractor.extract(text) else emptyList()
         val s = session
-        return buildJsonObject {
+        return store.tx { buildJsonObject {
             put("intent", intent.name); put("episode", ep.id)
             when (intent.name) {
                 "reject" -> {
@@ -133,9 +142,9 @@ class CarMemory(
                     put("explanation", if (rid != null) explain(rid) else buildJsonObject { put("record", JsonNull) })
                     put("stored", JsonArray(emptyList()))
                 }
-                else -> put("stored", JsonArray(extractor.extract(text).map { applyCandidate(scope, it, ep, now) }))
+                else -> put("stored", JsonArray(candidates.map { applyCandidate(scope, it, ep, now) }))
             }
-        }
+        } }
     }
 
     private fun applyCandidate(scope: String, c: Candidate, ep: Episode, now: LocalDateTime): JsonObject {
@@ -151,13 +160,14 @@ class CarMemory(
     }
 
     // ------------------------------------------------------------ acting
-    fun proactive(now: LocalDateTime = clock(), location: String? = null): List<Proposal> {
-        val s = session ?: return emptyList()
-        val props = consolidator.proposals(driver(), now, s.suppressed, location)
+    /** What the car would do now. While the car is in motion some categories are held back: see [Policy.act_blocked_while_moving]. */
+    fun proactive(now: LocalDateTime = clock(), location: String? = null, moving: Boolean = carMoving): List<Proposal> = store.tx {
+        val s = session ?: return@tx emptyList()
+        val props = consolidator.proposals(driver(), now, s.suppressed, location, moving)
         val known = props.map { it.recordId }.toSet()
         s.pending.retainAll { it.recordId !in known }; s.pending += props
         if (props.isNotEmpty()) store.audit(now, driver(), "proactive", JsonArray(props.map { JsonPrimitive(it.text) }))
-        return props
+        props
     }
 
     private fun activeProposal(prefer: Tier): Proposal? {
@@ -197,14 +207,82 @@ class CarMemory(
     }
 
     /** Forget by record id, or by free-text search within the speaker's scope. */
-    fun forget(target: String, now: LocalDateTime = clock(), scope: String? = null): JsonObject {
-        if (store.getFact(target) != null || store.getRoutine(target) != null) return consolidator.forget(target, now)
-        val sc = scope ?: session?.occupancy?.driverId ?: return buildJsonObject { put("forgot", JsonNull); put("reason", "no scope") }
+    fun forget(target: String, now: LocalDateTime = clock(), scope: String? = null): JsonObject = store.tx {
+        if (store.getFact(target) != null || store.getRoutine(target) != null) return@tx consolidator.forget(target, now)
+        val sc = scope ?: session?.occupancy?.driverId ?: return@tx buildJsonObject { put("forgot", JsonNull); put("reason", "no scope") }
         var best: String? = null; var bestS = 0.0
         for (f in store.facts(listOf(sc))) { val s = keywordOverlap(target, "${f.category} ${f.key} ${f.value.render()} ${f.condition ?: ""}".replace('_', ' ')); if (s > bestS) { best = f.id; bestS = s } }
         for (r in store.routines(listOf(sc))) { val s = keywordOverlap(target, "${r.destination} ${r.slotText()} route trip routine go going"); if (s > bestS) { best = r.id; bestS = s } }
-        if (best == null || bestS < 0.2) return buildJsonObject { put("forgot", JsonNull); put("reason", "no matching memory"); put("query", target) }
-        return consolidator.forget(best, now)
+        if (best == null || bestS < 0.2) return@tx buildJsonObject { put("forgot", JsonNull); put("reason", "no matching memory"); put("query", target) }
+        consolidator.forget(best!!, now)
+    }
+
+    /**
+     * The assistant decided this is worth keeping. Known patterns become typed facts as in [hear]; anything else is kept
+     * as a note rather than dropped, because the caller's model has already judged it durable.
+     */
+    fun remember(text: String, speakerId: String? = null, now: LocalDateTime = clock()): JsonObject {
+        val heard = hear(text, speakerId, now)
+        val stored = heard["stored"] as? JsonArray
+        if ((heard["intent"] as? JsonPrimitive)?.content != "none" || stored == null || stored.isNotEmpty() || text.isBlank()) return heard
+        val scope = speakerId ?: driver()
+        val ep = store.getEpisode((heard["episode"] as JsonPrimitive).content.toLong()) ?: return heard
+        val note = text.trim().trimEnd('.', '!')
+        val saved = store.tx { applyCandidate(scope, Candidate(noteCategory(note), slug(note), JsonPrimitive(note)), ep, now) }
+        return JsonObject(heard + ("stored" to JsonArray(listOf(saved))))
+    }
+
+    /**
+     * A place has a new name: the car worked out that `place-3` is home, or the driver named it. Everything learned
+     * under the old name follows it (routines with their evidence, 'forget' tombstones, trip history), so learning
+     * does not start again and the old name does not linger in what the assistant is told.
+     */
+    fun renamePlace(old: String, new: String, now: LocalDateTime = clock()): JsonObject = store.tx {
+        val o = normPlace(old)
+        var routines = 0; var episodes = 0
+        if (o.isNotEmpty() && normPlace(new).isNotEmpty() && o != normPlace(new)) {
+            fun swap(p: String) = if (normPlace(p) == o) new else p
+            fun swap(e: Evidence) = e.copy(value = (e.value as? JsonPrimitive)?.takeIf { it.isString && normPlace(it.content) == o }?.let { JsonPrimitive(new) } ?: e.value, condition = e.condition?.let(::swap))
+            val tol = policy.routine_slot_tolerance_min
+            for (r in store.routines(null)) {
+                val isDest = normPlace(r.destination) == o
+                if (!isDest && normPlace(r.origin) != o && (r.support + r.contradictions).none { e -> normPlace(e.condition ?: "") == o || (e.value as? JsonPrimitive)?.let { it.isString && normPlace(it.content) == o } == true }) continue
+                val dest = swap(r.destination)
+                val moved = r.copy(destination = dest, signature = routineSignature(r.dow, dest), origin = swap(r.origin),
+                    action = if ("destination" in r.action) r.action + ("destination" to JsonPrimitive(dest)) else r.action,
+                    support = r.support.map(::swap).toMutableList(), contradictions = r.contradictions.map(::swap).toMutableList())
+                // trips already recorded under the new name in the same slot are the same habit: one routine, not two
+                val twin = if (isDest && r.state != State.RETIRED) store.routines(listOf(r.scope), signature = moved.signature)
+                    .firstOrNull { it.id != r.id && it.state != State.RETIRED && kotlin.math.abs(it.minuteOfDay - r.minuteOfDay) <= tol } else null
+                if (twin != null) {
+                    store.deleteRoutine(r.id)
+                    val support = (twin.support + moved.support).sortedBy { it.ts }
+                    // each half saw the other's trips as "went elsewhere"; on a day with a trip to this place that is no longer true
+                    val tripDays = support.filter { it.note == "trip" }.map { it.ts.take(10) }.toSet()
+                    consolidator.evaluateRoutine(twin.copy(firstSeen = minOf(twin.firstSeen, moved.firstSeen), lastSeen = maxOf(twin.lastSeen, moved.lastSeen),
+                        support = support.toMutableList(),
+                        contradictions = (twin.contradictions + moved.contradictions).filterNot { it.note == "went elsewhere" && it.ts.take(10) in tripDays }.sortedBy { it.ts }.toMutableList(),
+                        demotion = maxOf(twin.demotion, moved.demotion)), now)
+                } else consolidator.evaluateRoutine(moved, now)
+                routines++
+            }
+            store.renameTombstones(routineTombstoneKey(old), routineTombstoneKey(new))
+            for (ep in store.episodesOfKind("trip")) {
+                val p = ep.payload as? JsonObject ?: continue
+                val from = (p["origin"] as? JsonPrimitive)?.content ?: continue; val to = (p["destination"] as? JsonPrimitive)?.content ?: continue
+                if (normPlace(from) != o && normPlace(to) != o) continue
+                val text = ep.text.replaceFirst("trip $from -> $to", "trip ${swap(from)} -> ${swap(to)}")
+                store.rewriteEpisode(ep.id, text, JsonObject(p + mapOf("origin" to JsonPrimitive(swap(from)), "destination" to JsonPrimitive(swap(to)))), embedder.embed(text))
+                episodes++
+            }
+            session?.pending?.replaceAll { p ->
+                val d = (p.action["destination"] as? JsonPrimitive)?.content
+                if (d != null && normPlace(d) == o) p.copy(text = p.text.replace(d, new), action = p.action + ("destination" to JsonPrimitive(new))) else p
+            }
+            contextBuilder.invalidate()
+            store.audit(now, null, "place.renamed", buildJsonObject { put("from", old); put("to", new); put("routines", routines); put("episodes", episodes) })
+        }
+        buildJsonObject { put("from", old); put("to", new); put("routines", routines); put("episodes", episodes) }
     }
 
     // ------------------------------------------------------------ tools
@@ -214,16 +292,16 @@ class CarMemory(
         fun str(k: String) = (args[k] as? JsonPrimitive)?.content
         return when (name) {
             "memory_recall" -> recall(str("query") ?: "", str("k")?.toIntOrNull() ?: 6)
-            "memory_remember" -> hear(str("text") ?: "")
+            "memory_remember" -> remember(str("text") ?: "")
             "memory_forget" -> forget(str("target") ?: "")
             "memory_correct" -> correct(str("answer") ?: "no")
             "memory_explain" -> explain(str("record_id") ?: "")
-            "memory_proactive" -> buildJsonObject { put("proposals", JsonArray(proactive(location = str("location")).map { p -> buildJsonObject { put("id", p.id); put("kind", p.kind); put("record_id", p.recordId); put("scope", p.scope); put("tier", p.tier.wire); put("text", p.text); put("action", JsonObject(p.action)) } })) }
+            "memory_proactive" -> buildJsonObject { put("proposals", JsonArray(proactive(location = str("location") ?: carLocation).map { p -> buildJsonObject { put("id", p.id); put("kind", p.kind); put("record_id", p.recordId); put("scope", p.scope); put("tier", p.tier.wire); put("text", p.text); put("action", JsonObject(p.action)) } })) }
             else -> throw IllegalArgumentException("unknown tool $name")
         }
     }
 
-    fun maintenance(now: LocalDateTime = clock()) = consolidator.maintenance(now)
+    fun maintenance(now: LocalDateTime = clock()) = store.tx { consolidator.maintenance(now) }
 
     /** Semantic + procedural layers for sync. Episodic never leaves the car. */
     fun snapshot(forCloud: Boolean = false): JsonObject = buildJsonObject {

@@ -45,8 +45,9 @@ adb logcat -s carmem:D carmem-probe:I
 cd carmem-devhost/sim && ./drive.sh
 ```
 
-`op` is one of `proactive`, `recall`, `hear`, `context`, `snapshot`, `explain` or `forget`, with
-`--es arg <value>` for the argument.
+`op` is one of `proactive`, `recall`, `hear`, `context`, `snapshot`, `explain`, `forget`, `enroll` or `stats`,
+with `--es arg <value>` for the argument. `stats` prints per-call latency (p50/p95/p99/max, queue time, calls
+over 50 ms) measured inside the service since it started.
 
 ## Why the service runs in the driver's user
 

@@ -34,6 +34,10 @@ class TripSegmenter(
 
     val currentPlace: Place? get() = lastFix?.let { places.resolve(it.lat, it.lon) }
 
+    /** Whether the last fix had the car in motion. False with the ignition off. */
+    var moving = false
+        private set
+
     fun onEvent(e: CarEvent) {
         when (e) {
             is IgnitionChanged -> if (e.on) start(e.ts) else stop(e.ts)
@@ -55,7 +59,7 @@ class TripSegmenter(
 
     private fun stop(ts: LocalDateTime) {
         if (!ignitionOn) return
-        ignitionOn = false
+        ignitionOn = false; moving = false
         closeTrip(ts)
         dwellingAt = lastFix?.let { places.resolve(it.lat, it.lon) }; dwellStart = ts
     }
@@ -66,7 +70,7 @@ class TripSegmenter(
         if (!ignitionOn) return
         if (origin == null) origin = places.resolve(f.lat, f.lon)
         val step = prev?.let { haversineMeters(it.lat, it.lon, f.lat, f.lon) } ?: 0.0
-        val moving = (f.speedMps ?: (step / maxOf(1.0, prev?.let { Duration.between(it.ts, f.ts).seconds.toDouble() } ?: 1.0))) > stationarySpeedMps
+        moving = (f.speedMps ?: (step / maxOf(1.0, prev?.let { Duration.between(it.ts, f.ts).seconds.toDouble() } ?: 1.0))) > stationarySpeedMps
         if (moving) {
             movedMeters += step
             if (stationarySince != null && tripStart == null) { // moving again after a dwell split: new trip

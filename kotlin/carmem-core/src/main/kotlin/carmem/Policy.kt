@@ -50,6 +50,9 @@ data class Policy(
     ),
     val mask_in_cloud_categories: List<String> = listOf("health", "contacts", "home_address", "school", "children", "finance"),
     val mask_in_cloud_sensitivity: List<String> = listOf("sensitive"),
+
+    /** Categories the car must not act on while it is moving, whatever their tier: a seat does not move at speed. */
+    val act_blocked_while_moving: List<String> = listOf("seat"),
 ) {
     fun tierFor(category: String): Tier = Tier.of(tiers[category] ?: "silent")
     fun sensitivityFor(category: String): String = sensitivity[category] ?: "personal"

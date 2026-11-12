@@ -105,6 +105,7 @@ class ContextBuilder(private val store: Store, private val policy: Policy, priva
         occ: Occupancy, query: String = "", destination: String = "local", now: LocalDateTime, kEpisodes: Int = 5, episodeDays: Int = 42,
         places: List<String> = emptyList(), live: Map<String, String> = emptyMap(),
         turns: List<Conversation.Turn> = emptyList(), focus: List<Conversation.Focus> = emptyList(),
+        alsoMask: List<String> = emptyList(),
     ): ContextPacket {
         val sem = semanticFor(occ.driverId)
         val name = sem.name ?: if (occ.isGuest) "Guest" else occ.driverId
@@ -136,6 +137,10 @@ class ContextBuilder(private val store: Store, private val policy: Policy, priva
         if (destination == "cloud") {
             var n = 0
             for (f in packet.facts) if (policy.maskedInCloud(f.category, f.sensitivity)) { n++; packet.masked["<${f.category}_$n>"] = f.value.render() }
+            // The conversation is shared by everyone in the cabin, so what the others present have told the car is masked
+            // in it too: a passenger's allergy is no more the cloud's business than the driver's.
+            for (f in alsoMask.distinct().filter { it != occ.driverId }.flatMap { store.facts(listOf(it), states = listOf(State.CONFIRMED)) })
+                if (policy.maskedInCloud(f.category, f.sensitivity) && packet.masked.values.none { it.equals(f.value.render(), ignoreCase = true) }) { n++; packet.masked["<${f.category}_$n>"] = f.value.render() }
             // Where the driver lives, works and visits is as private as anything they say: the cloud sees <place_1>.
             if (policy.maskedInCloud("place", policy.sensitivityFor("place")))
                 for (p in packet.facts.filter { it.category == "place" }.map { it.key } + places)

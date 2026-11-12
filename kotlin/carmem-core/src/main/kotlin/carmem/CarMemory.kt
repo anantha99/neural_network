@@ -289,7 +289,8 @@ class CarMemory(
         return contextBuilder.build(occ, query, destination, now,
             places = if (owner) knownPlaces?.invoke().orEmpty() else emptyList(),
             live = if (owner) live.toMap() else live.filterKeys { it != "location" && it != "destination" },
-            turns = s?.conversation?.turns(now).orEmpty(), focus = s?.conversation?.inFocus(now).orEmpty())
+            turns = s?.conversation?.turns(now).orEmpty(), focus = s?.conversation?.inFocus(now).orEmpty(),
+            alsoMask = if (s != null && destination == "cloud") s.occupancy.scopes + s.guestSpeakers.values else emptyList())
     }
 
     fun recall(query: String, k: Int = 6, now: LocalDateTime = clock(), speakerId: String? = null): JsonObject {

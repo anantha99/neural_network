@@ -130,6 +130,9 @@ class UseCaseTest {
         val bens = mem.context("allergy", "local", t0, "ben").render(); val drivers = mem.context("allergy", "local", t0.plusMinutes(10)).render()
         assertTrue("health/allergy = peanuts" in bens && "peanuts" !in drivers && "shellfish" !in drivers, drivers)
         assertTrue("shellfish" in mem.context("allergy", "local", t0, "rear-left").render())      // theirs for this drive
+        // everyone in the cabin heard it, so it is in the conversation; the cloud gets a placeholder whoever said it
+        val cloud = mem.context("allergy", "cloud", t0.plusMinutes(1)).render()
+        assertTrue("- passenger: I'm allergic to <health_" in cloud && "shellfish" !in cloud && "peanuts" !in cloud, cloud)
         mem.ignitionOff(t0.plusHours(1))
         assertTrue(mem.store.scopesPresent().none(::isGuest))
         assertTrue("shellfish" !in mem.store.auditLog(1000).toString() && mem.store.episodes(listOf("ben")).any { "peanuts" in it.first.text })
